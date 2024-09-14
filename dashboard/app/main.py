@@ -54,7 +54,7 @@ async def create_envs(request: ContainerRequest):
 @app.post("/create_envs/text")
 async def create_envs_text(request: SmartContainerRequest):
     num_containers = request.num_containers
-    dockerfile_content = get_docker_file(request.prompt, port="1000")
+    dockerfile_content = get_docker_file(request.prompt)
     spin_up_containers(
         num_containers=num_containers, dockerfile_content=dockerfile_content
     )
