@@ -9,9 +9,29 @@ export default function Index() {
   const [numberValue, setNumberValue] = useState("");
   const [output, setOutput] = useState("");
 
-  const handleConfigure = () => {
-    setOutput(`You entered: "${textValue}" and the number: ${numberValue}`);
-    // Call Joy's endpoints
+  const handleConfigure = async () => {
+    try {
+      const response = await fetch("http://localhost:8000/create_envs", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          num_containers: parseInt(numberValue),
+          dockerfile_content: textValue || null,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to create containers: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setOutput(`Containers created successfully. SSH commands: ${data.ssh_commands}`);
+      // Need to connect this to database to then populate dashboard.tsx
+    } catch (error: any) {
+      setOutput(`Error: ${error.message}`);
+    }
   };
 
   return (
