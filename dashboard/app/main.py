@@ -3,6 +3,8 @@ from pydantic import BaseModel, Field
 from typing import Optional
 
 from app.docker_logic import create_docker_containers
+from app.utils import get_docker_file
+from app.k8s_logic import create_kubernetes_deployments
 
 app = FastAPI()
 
@@ -20,9 +22,9 @@ class SmartContainerRequest(BaseModel):
     prompt: str
 
 
-async def spin_up_containers(num_containers, dockerfile_content):
+def spin_up_containers(num_containers, dockerfile_content):
     try:
-        ssh_commands = create_docker_containers(num_containers, dockerfile_content)
+        ssh_commands = create_kubernetes_deployments(num_containers, dockerfile_content)
 
         return {"status": "success", "ssh_commands": ssh_commands}
 
@@ -30,15 +32,29 @@ async def spin_up_containers(num_containers, dockerfile_content):
         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
 
+# def spin_up_containers(num_containers, dockerfile_content):
+#     try:
+#         ssh_commands = create_docker_containers(num_containers, dockerfile_content)
+
+#         return {"status": "success", "ssh_commands": ssh_commands}
+
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+
+
 @app.post("/create_envs")
 async def create_envs(request: ContainerRequest):
     num_containers = request.num_containers
     dockerfile_content = request.dockerfile_content
-    spin_up_containers(
+    return spin_up_containers(
         num_containers=num_containers, dockerfile_content=dockerfile_content
     )
 
 
 @app.post("/create_envs/text")
 async def create_envs_text(request: SmartContainerRequest):
-    pass
+    num_containers = request.num_containers
+    dockerfile_content = get_docker_file(request.prompt, port="1000")
+    spin_up_containers(
+        num_containers=num_containers, dockerfile_content=dockerfile_content
+    )
