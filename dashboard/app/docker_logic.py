@@ -9,10 +9,10 @@ from app.utils import DEFAULT_DOCKERFILE_CONTENT, run_command
 
 
 def find_available_ports(
-    num_ports: int, start_port: int = 8000, end_port: int = 9000
+    num_ports: int, start_port_range: int = 8000, end_port_range: int = 9000
 ) -> t.List[int]:
     available_ports = []
-    for port in range(start_port, end_port + 1):
+    for port in range(start_port_range, end_port_range + 1):
         if len(available_ports) == num_ports:
             break
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -55,7 +55,9 @@ def create_docker_containers(
         )
 
     ports = find_available_ports(
-        num_ports=num_containers, start_port=8000, end_port=9000
+        num_ports=num_containers,
+        start_port_range=start_port_range,
+        end_port_range=end_port_range,
     )
     for i in range(num_containers):
         container_name = f"container-{env_name}-{i+1}"
