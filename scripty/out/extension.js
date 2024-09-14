@@ -34,15 +34,25 @@ function activate(context) {
     // Use the console to output diagnostic information (console.log) and errors (console.error)
     // This line of code will only be executed once when your extension is activated
     console.log('Congratulations, your extension "scripty" is now active!');
-    // The command has been defined in the package.json file
-    // Now provide the implementation of the command with registerCommand
-    // The commandId parameter must match the command field in package.json
+    // Template Command
     const disposable = vscode.commands.registerCommand('scripty.helloWorld', () => {
-        // The code you place here will be executed every time your command is executed
-        // Display a message box to the user
         vscode.window.showInformationMessage('Hello World from Scripty!');
     });
+    const analyze = vscode.commands.registerCommand('scripty.analyzeCode', () => {
+        vscode.window.showInformationMessage('Analyzing code!');
+        const editor = vscode.window.activeTextEditor;
+        if (editor) {
+            const document = editor.document;
+            const fileContent = document.getText();
+            vscode.window.showInformationMessage(`Analyzing: ${fileContent}...`);
+            // Run analysis here
+        }
+        else {
+            vscode.window.showErrorMessage('No active text editor found.');
+        }
+    });
     context.subscriptions.push(disposable);
+    context.subscriptions.push(analyze);
 }
 // This method is called when your extension is deactivated
 function deactivate() { }
