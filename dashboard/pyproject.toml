@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "dashboard"
+version = "0.1.0"
+description = ""
+authors = ["Joy Liu <joyliu.q@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pulumi = "^3.132.0"
+pulumi-docker = "^4.5.5"
+fastapi = "^0.114.2"
+uvicorn = "^0.30.6"
+docker = "^7.1.0"
+pyyaml = "^6.0.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
