@@ -1,5 +1,8 @@
 import { useState } from "react";
 import Layout from "~/components/Layout";
+import { Textarea } from "~/components/ui/textarea"
+import { Input } from "~/components/ui/input"
+import { Button } from "~/components/ui/button"
 
 export default function Index() {
   const [textValue, setTextValue] = useState("");
@@ -13,46 +16,45 @@ export default function Index() {
 
   return (
     <Layout>
-      <div className="flex h-screen flex-col items-center justify-center gap-6 p-4">
+      <div className="flex h-screen flex-col items-center gap-6 pt-20">
         <div className="flex flex-col w-full max-w-md">
           <label htmlFor="textInput" className="text-lg font-medium text-gray-700 dark:text-gray-100">
             Generate Set Up
           </label>
-          <input
-            type="text"
-            id="textInput"
+          <Textarea
             value={textValue}
             onChange={(e) => setTextValue(e.target.value)}
-            className="mt-2 p-3 border border-gray-300 rounded-md dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700 w-full text-lg"
-            placeholder="Install Python..."
-          />
+            className="mt-2 p-3"
+            placeholder="Install Python..."/>
         </div>
 
         <div className="flex flex-col w-full max-w-md">
           <label htmlFor="numberInput" className="text-lg font-medium text-gray-700 dark:text-gray-100">
             Number of Students
           </label>
-          <input
+          <Input
             type="number"
             id="numberInput"
             value={numberValue}
             onChange={(e) => setNumberValue(e.target.value)}
-            className="mt-2 p-3 border border-gray-300 rounded-md dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700 w-full text-lg"
+            className="mt-2 p-3"
             placeholder="0"
           />
         </div>
 
-        <button
+        <Button
           onClick={handleConfigure}
-          className="px-6 py-3 bg-blue-600 text-white rounded-md text-lg hover:bg-blue-700"
+          className="px-6 py-3"
         >
           Configure
-        </button>
+        </Button>
 
         {output && (
           <div className="mt-6 w-full max-w-md p-4 border border-gray-300 rounded-md dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700">
             <h3 className="text-lg font-medium">Generated Docker file:</h3>
-            <p className="mt-2">{output}</p>
+            <pre className="mt-2 p-3 bg-gray-900 text-gray-100 rounded-md overflow-auto">
+              <code className="text-sm">{output}</code>
+            </pre>
           </div>
         )}
       </div>

@@ -3,7 +3,7 @@ import { Link } from "@remix-run/react";
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col min-h-screen">
-      <header className="sticky top-0 pt-6 pb-2">
+      <header className="sticky top-0 pt-14 pb-2">
         <nav className="flex justify-center space-x-8 text-white">
           <Link
             to="/"
