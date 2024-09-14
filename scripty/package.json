@@ -16,6 +16,10 @@
       {
         "command": "scripty.helloWorld",
         "title": "Hello World"
+      },
+      {
+        "command": "scripty.analyzeCode",
+        "title": "Analyze Code"
       }
     ]
   },
