@@ -159,8 +159,6 @@ if __name__ == "__main__":
     # print("the docker command")
     # print(res.docker_file_text)
 
-    annot = AnnotationGenerator()
-
     def show_progress(progress):
         print(progress.annotated_code)
         print('read', progress.readability_score)
