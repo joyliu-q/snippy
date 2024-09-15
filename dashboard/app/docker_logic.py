@@ -1,9 +1,53 @@
+import shutil
+import tempfile
 import time
 import typing as t
 import uuid
 import socket
+import os
 
-from app.utils import run_command, wrap_docker_image
+from app.utils import run_command, DEFAULT_DOCKERFILE_CONTENT
+
+
+def _build_docker_image(dockerfile_content: str, image_name: str):
+    with tempfile.TemporaryDirectory() as temp_dir:
+        shutil.copytree("./container", os.path.join(temp_dir, "container"))
+        dockerfile_path = os.path.join(temp_dir, "Dockerfile")
+
+        if not dockerfile_content:
+            dockerfile_content = DEFAULT_DOCKERFILE_CONTENT
+
+        with open(dockerfile_path, "w", encoding="utf-8") as f:
+            f.write(dockerfile_content)
+
+        build_command = f"docker build -t {image_name} {temp_dir}"
+        print(f"Building Docker image {image_name}...")
+        run_command(
+            build_command,
+        )
+
+
+def wrap_docker_image(dockerfile_content: str, image_name: str) -> str:
+    """Include summarization monitor code in user docker image."""
+
+    inner_image_name = f"{image_name}-inner"
+    _build_docker_image(
+        dockerfile_content=dockerfile_content, image_name=inner_image_name
+    )
+
+    # TODO: make main.py a binary
+    wrapped_dockerfile_content = f"""
+FROM {inner_image_name}
+
+EXPOSE 5000
+COPY common /home/server
+RUN python /home/server/main.py &
+CMD ["/usr/sbin/sshd", "-D"]
+        """
+
+    _build_docker_image(
+        dockerfile_content=wrapped_dockerfile_content, image_name=image_name
+    )
 
 
 def find_available_ports(

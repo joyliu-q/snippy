@@ -20,8 +20,6 @@ RUN sed -i 's/#UsePAM yes/UsePAM no/' /etc/ssh/sshd_config
 EXPOSE 22
 
 EXPOSE 5000
-
 COPY ./container /home/server
-
 RUN python /home/server/main.py &
 CMD ["/usr/sbin/sshd", "-D"]
