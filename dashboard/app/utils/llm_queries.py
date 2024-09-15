@@ -1,7 +1,11 @@
+import os.path
+
 import dspy
 import dotenv
 import typing as t
 import re
+import requests
+from jupyterlab.semver import rsort
 
 from pydantic import BaseModel, Field
 
@@ -62,7 +66,7 @@ docker_file_gen = DockerFileGenerator()
 
 
 def get_docker_file(prompt: str) -> str:
-    return docker_file_gen(prompt).docker_file_text
+    return docker_file_gen(prompt)
 
 
 #####################################################
@@ -91,7 +95,7 @@ class AnnotateQuerySignature(dspy.Signature):
     code = dspy.InputField()
     goal = dspy.InputField(description="the goal that the code is trying to achieve")
     annotated_code = dspy.OutputField(
-        description="the code annotated with comments. don't add any new code (just comments)"
+        description="the code annotated with comments. don't add any new code (just comments). Only comment the lines that need improvement."
     )
     feedback = dspy.OutputField(description="assessment of the quality of the code")
     readability_score = dspy.OutputField(
@@ -130,9 +134,14 @@ class CodeFile(BaseModel):
     code_str: str
 
 
-def combine_codes(code_files: t.List[CodeFile]):
+class Project(BaseModel):
+    goal: str
+    code_files: t.List[CodeFile]
+
+
+def combine_codes(project_code: Project):
     result = ""
-    for code_file in code_files:
+    for code_file in project_code.code_files:
         result += "<<<filename: " + code_file.filename + ">>>" + "\n\n"
         result += code_file.code_str + "\n\n"
     return result
@@ -150,25 +159,47 @@ def get_number(num_text: str):
     return int(num_text[: pt + 1])
 
 
-def capture_progress_snapshot(
-    code_files: t.List[CodeFile], goal: str
-) -> ProgressSnapshot:
-    code = combine_codes(code_files)
-    res = annot_gen(code=combine_codes(code_files), goal=goal)
+def capture_progress_snapshot(project: Project) -> ProgressSnapshot:
+    combined_code = combine_codes(project)
+    res = annot_gen(code=combined_code, goal=project.goal)
     return ProgressSnapshot(
-        code=code,
-        annotated_code=res.annotated_code,
+        code=combined_code,
+        annotated_code=res.annotated_code, # TODO instead of string we should match the comments to the lines
         readability_score=get_number(res.readability_score),  # res.readability_score
         correctness_score=get_number(res.correctness_score),  # res.correctness_score
         improvement_tips=res.improvement_tips,
     )
 
 
+def get_request_pydantic_model(env_url: str, model):
+    try:
+        response = requests.get(env_url)
+        if response.status_code == 200:
+            data = response.text
+            item = model.model_validate_json(data)  # Parse the JSON into the Pydantic model
+            return item
+    except Exception as e:
+        print("Failed to fetch or parse data")
+        raise e
+
+def capture_progress_snapshot_by_url(env_url: str) -> ProgressSnapshot:
+    req_url = os.path.join(env_url, "project")
+    project: Project = get_request_pydantic_model(req_url, Project)
+    return capture_progress_snapshot(project)
+
+
 if __name__ == "__main__":
-    res = get_docker_file("I want a python 3.12 environment with flask installed. supporting numpy")
-    # res = get_docker_file("a simple python environment")
-    print("the docker command")
-    print(res)
+    res = capture_progress_snapshot_by_url("http://127.0.0.1:5000")
+    print(res.annotated_code)
+    print(res.correctness_score)
+    print(res.readability_score)
+    print(res.improvement_tips)
+
+    # res = get_docker_file("I want a python 3.12 environment with flask installed. supporting numpy")
+    # # res = get_docker_file("a simple python environment")
+    # print("the docker command")
+    # print(res)
+
 
 #     def show_progress(progress):
 #         print(progress.annotated_code)
