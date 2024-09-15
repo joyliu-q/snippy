@@ -1,0 +1,14 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+fastapi = "*"
+uvicorn = "*"
+intersystems-irispython = {file = "intersystems_irispython-3.2.0-py3-none-any.whl"}
+
+[dev-packages]
+
+[requires]
+python_version = "3.11"

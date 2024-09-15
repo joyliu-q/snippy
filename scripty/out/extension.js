@@ -79,9 +79,34 @@ function activate(context) {
             }
             // Assuming the desired content is under a key like 'choices' or similar
             const content = data.choices[0].message.content;
-            console.log(content);
             // Show the content in VS Code
             vscode.window.showInformationMessage(content);
+            // Define the data to be sent in the request body
+            const now = new Date();
+            const upsert_data = {
+                key: "example_key",
+                timestamp: now.toISOString(),
+                summary: content
+            };
+            fetch('http://127.0.0.1:8000/upload_summary', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(upsert_data)
+            })
+                .then(response => {
+                if (!response.ok) {
+                    vscode.window.showInformationMessage(`HTTP error! Status: ${response.statusText}`);
+                }
+                return response.json();
+            })
+                .then(result => {
+                console.log('Success:', result);
+            })
+                .catch(error => {
+                console.error('Error:', error);
+            });
         }
         else {
             vscode.window.showErrorMessage('No active text editor found.');
