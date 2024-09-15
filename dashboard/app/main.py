@@ -1,7 +1,9 @@
+import time
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 import typing as t
 import redis
+import json
 
 from app.utils import (
     EnvironmentConfig,
@@ -161,15 +163,53 @@ class StudentsResponse(BaseModel):
     students: t.List[StudentEnv]
 
 
+class EnvHistoryEntry(BaseModel):
+    env_name: str
+    ssh_command: str
+    readability_score: int
+    correctness_score: int
+    timestamp: int  # TODO: in unix time
+
+    def add_history_to_redis(self):
+        history_dict = self.dict()
+        history_json = json.dumps(history_dict)
+        redis_client.lpush(f"history:{self.ssh_command}", history_json)
+
+    @classmethod
+    def search_by_ssh_command(cls, ssh_command: str) -> t.List["EnvHistoryEntry"]:
+        history_json_list = redis_client.lrange(f"history:{ssh_command}", 0, -1)
+        history_entries = [cls(**json.loads(entry)) for entry in history_json_list]
+        return history_entries
+
+
+class EnvHistory(BaseModel):
+    env_name: str
+    ssh_command: str
+    entries: t.List[EnvHistoryEntry]
+
+
 @app.get("/students")
 async def get_students() -> StudentsResponse:
     students = []
-    existing_envs = Environment.get_all_from_redis()
-    for e in [*ENVS_DATABASE_TOTALLY.values(), *existing_envs]:
+    existing_envs: t.List[StudentEnv] = []
+    for e in Environment.get_all_from_redis():
+        existing_envs.extend(e.students)
+    all_envs: t.List[StudentEnv] = [*ENVS_DATABASE_TOTALLY.values(), *existing_envs]
+    for e in all_envs:
         try:
-            feedback = capture_progress_snapshot_by_url(
+            progress_snapshot = capture_progress_snapshot_by_url(
                 env_url=e.summary_server_url
-            ).improvement_tips
+            )
+            entry = EnvHistoryEntry(
+                env_name=e.env_name,
+                ssh_command=e.ssh_command,
+                readability_score=progress_snapshot.readability_score,
+                correctness_score=progress_snapshot.correctness_score,
+                timestamp=int(time.time()),
+            )
+            entry.add_history_to_redis()
+
+            feedback = progress_snapshot.improvement_tips
             env = StudentEnv(
                 env_name=e.env_name,
                 name=fake.name(),
@@ -191,3 +231,21 @@ async def get_students() -> StudentsResponse:
         env.save_to_redis()
         students.append(env)
     return StudentsResponse(students=students)
+
+
+@app.get("/history")
+async def get_history() -> t.List[EnvHistory]:
+    existing_envs = []
+    for e in Environment.get_all_from_redis():
+        existing_envs.extend(e.students)
+    all_envs: t.List[StudentEnv] = [*ENVS_DATABASE_TOTALLY.values(), *existing_envs]
+    history = []
+    for env in all_envs:
+        history.append(
+            EnvHistory(
+                env_name=env.env_name,
+                ssh_command=env.ssh_command,
+                entries=EnvHistoryEntry.search_by_ssh_command(env.ssh_command),
+            )
+        )
+    return history

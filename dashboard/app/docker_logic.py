@@ -43,7 +43,7 @@ FROM {inner_image_name}
 COPY ./common /etc/scripty
 
 # TODO hacky, later we want not hardcoded started code
-COPY ./common/projects/python_helloworld /home/project
+COPY ./common/projects/python_helloworld /root/project
 RUN pip install -r /etc/scripty/server/requirements.txt
 
 EXPOSE 5000

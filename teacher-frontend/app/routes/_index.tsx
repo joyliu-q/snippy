@@ -122,7 +122,7 @@ export default function Index() {
               value={numberValue}
               onChange={(e) => setNumberValue(e.target.value)}
               className="mt-2 p-3 text-black"
-              placeholder="0"
+              placeholder="1"
               min={0}
             />
           </div>
