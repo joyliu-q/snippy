@@ -63,13 +63,15 @@ export function activate(context: vscode.ExtensionContext) {
 					enableScripts: true,
 				}
 			);
-            panel.webview.html = getWebviewContent(sections, evals);
+            panel.webview.html = getWebviewContent(sections, evals, context.extensionUri, panel.webview);
 
 			// Define the data to be sent in the request body
 			const now = new Date();
 
+			const key = generateRandomString(7);
+
 			const upsert_data = {
-				key: generateRandomString(7),
+				key: key,
 				timestamp: now.toISOString(),
 				summary: sections.join('\n')
 			};
@@ -120,9 +122,10 @@ export function activate(context: vscode.ExtensionContext) {
 // This method is called when your extension is deactivated
 export function deactivate() {}
 
-function getWebviewContent(sections: string[], evals: string[]) {
+function getWebviewContent(sections: string[], evals: string[], extensionUri: vscode.Uri, webview: vscode.Webview) {
 	// vscode.window.showInformationMessage(content);
     // // Split content into sections based on "###" delimiter
+	const imagePath = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'media', 'scripty.png'));
 
     const sectionsHTML = sections.map(section => `<p>${(section.trim())}</p>`).join('');
 
@@ -131,7 +134,7 @@ function getWebviewContent(sections: string[], evals: string[]) {
         <html lang="en">
         <head>
             <meta charset="UTF-8">
-            <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https:; script-src 'unsafe-eval'; style-src 'unsafe-inline';">
+            <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource}; style-src 'unsafe-inline';">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Analysis Result</title>
             <style>
@@ -145,43 +148,52 @@ function getWebviewContent(sections: string[], evals: string[]) {
                     height: 100vh;
                     box-sizing: border-box;
                     overflow-y: auto;
-                    overflow-x: hidden; /* Prevent horizontal overflow */
+                    overflow-x: hidden;
                     max-width: 100%;
                 }
                 .message-box {
+                    position: relative;
                     border: 1px solid #ccc;
                     padding: 20px;
                     font-size: 20px;
-                    line-height: 1.8; /* Increased line height for more vertical spacing */
-                    width: calc(100% - 40px); /* Equal padding on both sides (20px left + 20px right) */
-                    margin: 0 auto; /* Center the box horizontally */
+                    line-height: 1.8;
+                    width: calc(100% - 40px);
+                    margin: 0 auto;
                     box-sizing: border-box;
-                    word-wrap: break-word; /* Ensure text wraps within the container */
+                    word-wrap: break-word;
+                }
+                .top-right-image {
+                    position: absolute;
+                    top: 10px;
+                    right: 30px; /* Move the image more to the left */
+                    max-width: 150px; /* Increase the image size */
+                    height: auto;
                 }
                 ul {
                     margin: 0;
-                    padding: 0 0 20px 20px; /* Added bottom padding for vertical spacing */
+                    padding: 0 0 20px 20px;
                     list-style-type: disc;
                     font-size: 18px;
                 }
                 li {
-                    margin-bottom: 10px; /* Space out list items */
+                    margin-bottom: 10px;
                 }
                 p {
                     font-size: 18px;
-                    margin-bottom: 20px; /* Increased margin for more vertical space */
+                    margin-bottom: 20px;
                 }
                 h1 {
                     font-size: 24px;
-                    margin-bottom: 20px; /* Space out the heading */
+                    margin-bottom: 20px;
                 }
             </style>
         </head>
         <body>
             <div class="message-box">
+                <img class="top-right-image" src="${imagePath}" alt="Descriptive feedback image">
                 <h1>Here's your feedback!</h1>
                 ${sectionsHTML}
-				${evals.length === 3 ? `Readability: ${evals[0]}, Syntax: ${evals[1]}, Good Practices: ${evals[2]}` : ''}
+                ${evals.length === 3 ? `<p>Readability: ${evals[0]}, Syntax: ${evals[1]}, Good Practices: ${evals[2]}</p>` : ''}
             </div>
         </body>
         </html>`;
