@@ -2,12 +2,17 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 import typing as t
 
-from app.utils import EnvironmentConfig, DEFAULT_DOCKERFILE_CONTENT, ProgressSnapshot
+from app.utils import (
+    EnvironmentConfig,
+    get_docker_file,
+    DEFAULT_DOCKERFILE_CONTENT,
+    ProgressSnapshot,
+    capture_progress_snapshot_by_url,
+)
 from faker import Faker
 from fastapi.middleware.cors import CORSMiddleware
 
 # from app.docker_logic import create_docker_containers
-from app.utils import get_docker_file
 from app.k8s_logic import create_kubernetes_deployments
 
 app = FastAPI()
@@ -129,4 +134,7 @@ class FeedbacksResponse(BaseModel):
 @app.get("/feedback")
 async def get_feedbacks() -> FeedbacksResponse:
     feedbacks = []
+    for env in ENVS_DATABASE_TOTALLY.values():
+        feedback = capture_progress_snapshot_by_url(env_url=env.summary_server_url)
+        feedbacks.append(feedback)
     return FeedbacksResponse(feedbacks=feedbacks)

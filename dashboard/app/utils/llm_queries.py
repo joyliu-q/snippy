@@ -5,9 +5,8 @@ import dotenv
 import typing as t
 import re
 import requests
-from jupyterlab.semver import rsort
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class DockerFileQuerySignature(dspy.Signature):
@@ -37,7 +36,7 @@ class DockerFileQuerySignature(dspy.Signature):
 
 
 def extract_code(code_text: str):
-    res = re.search(r'```.*([\s\S]*?)```', code_text)
+    res = re.search(r"```.*([\s\S]*?)```", code_text)
     if not res:
         return code_text
     return res.groups(1)[0]
@@ -164,7 +163,7 @@ def capture_progress_snapshot(project: Project) -> ProgressSnapshot:
     res = annot_gen(code=combined_code, goal=project.goal)
     return ProgressSnapshot(
         code=combined_code,
-        annotated_code=res.annotated_code, # TODO instead of string we should match the comments to the lines
+        annotated_code=res.annotated_code,  # TODO instead of string we should match the comments to the lines
         readability_score=get_number(res.readability_score),  # res.readability_score
         correctness_score=get_number(res.correctness_score),  # res.correctness_score
         improvement_tips=res.improvement_tips,
@@ -176,11 +175,14 @@ def get_request_pydantic_model(env_url: str, model):
         response = requests.get(env_url)
         if response.status_code == 200:
             data = response.text
-            item = model.model_validate_json(data)  # Parse the JSON into the Pydantic model
+            item = model.model_validate_json(
+                data
+            )  # Parse the JSON into the Pydantic model
             return item
     except Exception as e:
         print("Failed to fetch or parse data")
         raise e
+
 
 def capture_progress_snapshot_by_url(env_url: str) -> ProgressSnapshot:
     req_url = os.path.join(env_url, "project")

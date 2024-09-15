@@ -50,14 +50,14 @@ export default function Index() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("http://localhost:8000/create_envs/manual", {
+      const response = await fetch("http://localhost:8000/create_envs", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           num_containers: parseInt(numberValue),
-          // prompt: textValue,
+          prompt: textValue,
         }),
       });
 

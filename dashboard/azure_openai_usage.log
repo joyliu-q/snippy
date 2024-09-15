@@ -5,3 +5,5 @@ Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) a
 Retrying (Retry(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<urllib3.connection.HTTPConnection object at 0x12789bb80>: Failed to establish a new connection: [Errno 61] Connection refused')': /apis/apps/v1/namespaces/default/deployments
 Retrying (Retry(total=0, connect=None, read=None, redirect=None, status=None)) after connection broken by 'NewConnectionError('<urllib3.connection.HTTPConnection object at 0x12789bd30>: Failed to establish a new connection: [Errno 61] Connection refused')': /apis/apps/v1/namespaces/default/deployments
 HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
