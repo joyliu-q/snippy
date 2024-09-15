@@ -11,8 +11,9 @@ from app.utils import run_command, DEFAULT_DOCKERFILE_CONTENT
 
 def _build_docker_image(dockerfile_content: str, image_name: str):
     with tempfile.TemporaryDirectory() as temp_dir:
-        shutil.copytree("./container", os.path.join(temp_dir, "container"))
-        dockerfile_path = os.path.join(temp_dir, "Dockerfile")
+        common_dir = os.path.join(temp_dir, "common")
+        shutil.copytree("./common", common_dir)
+        dockerfile_path = os.path.join(common_dir, "Dockerfile")
 
         if not dockerfile_content:
             dockerfile_content = DEFAULT_DOCKERFILE_CONTENT
@@ -39,11 +40,20 @@ def wrap_docker_image(dockerfile_content: str, image_name: str) -> str:
     wrapped_dockerfile_content = f"""
 FROM {inner_image_name}
 
+EXPOSE 22
 EXPOSE 5000
-COPY common /home/server
-RUN python /home/server/main.py &
-CMD ["/usr/sbin/sshd", "-D"]
-        """
+
+# TODO hacky use pip requirements later
+COPY requirements.txt requirements.txt
+RUN pip install -r requirements.txt
+COPY ./container /home/server
+
+# TODO hacky later we want teacher to be able to submit the project through website
+COPY ./projects/python_helloworld /home/project
+
+RUN /usr/sbin/sshd -D &
+CMD ["python", "/home/server/main.py"]
+"""
 
     _build_docker_image(
         dockerfile_content=wrapped_dockerfile_content, image_name=image_name
