@@ -6,7 +6,7 @@ interface OpenAIResponse {
 	}[];
   }
 
-export async function generate(fileContent: String, prompt: String) {
+export async function generate(fileContent: string, prompt: string) {
 	const response = await fetch("https://proxy.tune.app/chat/completions", {
 		method: "POST",
 		headers: {
@@ -40,4 +40,63 @@ export async function generate(fileContent: String, prompt: String) {
 	// Assuming the desired content is under a key like 'choices' or similar
 	return data.choices[0].message.content;
 
+}
+
+
+export async function retrieveCommentedFiles() {
+	// const response = await fetch (/** stuff */);
+	// const files = await response.json();
+	// return files;
+	
+}
+
+export async function uploadMetrics(evals: string[]) {
+
+	const now = new Date();
+	const upsert_score = {
+		timestamp: now.toISOString(),
+		readability: evals[0],
+		syntax: evals[1],
+		practice: evals[2]
+	};
+	fetch('http://127.0.0.1:8000/upload_scores', {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		body: JSON.stringify(upsert_score)
+	})
+	.then(response => {
+		if (!response.ok) {
+			throw Error(response.statusText);
+		}
+	});
+}
+
+export async function uploadSummary(upsert_data: any) {
+	fetch('http://127.0.0.1:8000/upload_summary', {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		body: JSON.stringify(upsert_data)
+	})
+	.then(response => {
+		if (!response.ok) {
+			throw Error(response.statusText);
+		}
+	});
+
+	fetch('http://127.0.0.1:8000/upload_embedding', {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json'
+		},
+		body: JSON.stringify(upsert_data)
+	})
+	.then(response => {
+		if (!response.ok) {
+			throw Error(response.statusText);
+		}
+	});
 }

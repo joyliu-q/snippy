@@ -28,7 +28,7 @@ const products = [
     title: "Docker",
     link: "https://www.docker.com/",
     thumbnail:
-      "https://media.discordapp.net/attachments/1284707830661648424/1284707842044989511/Example-of-a-Docker-file-for-a-GPU-image-From-the-Docker-files-multiple-Docker-container.png?ex=66e79cea&is=66e64b6a&hm=88f44ddef0793f14473cd99937a24b66b744034070a7b00d7e9ca8a29501e570&=&format=webp&quality=lossless&width=1700&height=1082",
+      "https://media.discordapp.net/attachments/1284707830661648424/1284888428562874459/Screenshot_2024-09-15_at_10.47.47_AM.png?ex=66e84519&is=66e6f399&hm=b4d6b81efca5f5c95da5c6a8e068c089f2afc6397a205b82717ea63912e3ed17&=&format=webp&quality=lossless&width=1716&height=1082",
   },
 ];
 

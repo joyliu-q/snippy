@@ -1,7 +1,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import {generate} from './utils';
+import {generate, retrieveCommentedFiles, uploadMetrics, uploadSummary} from './utils';
 import {strengthsAndWeaknesses} from './prompts';
 import {metrics} from './prompts';
 
@@ -49,8 +49,8 @@ export function activate(context: vscode.ExtensionContext) {
 			} else {
 				sections = [content];
 			}
+			
 			const evaluations = await generate(fileContent, metrics);
-
 			const evals = evaluations.split(',');
 
 			// Show the content in VS Code
@@ -58,16 +58,14 @@ export function activate(context: vscode.ExtensionContext) {
 				'analysisResult',
 				'Analysis Result',
 				vscode.ViewColumn.Three,
-					
 				{
 					enableScripts: true,
 				}
 			);
+
             panel.webview.html = getWebviewContent(sections, evals, context.extensionUri, panel.webview);
 
-			// Define the data to be sent in the request body
 			const now = new Date();
-
 			const key = generateRandomString(7);
 
 			const upsert_data = {
@@ -76,39 +74,39 @@ export function activate(context: vscode.ExtensionContext) {
 				summary: sections.join('\n')
 			};
 
-			fetch('http://127.0.0.1:8000/upload_summary', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify(upsert_data)
-			})
-			.then(response => {
-				if (!response.ok) {
-					vscode.window.showInformationMessage(`HTTP error! Status: ${response.statusText}`);
-				}
-			});
+			await uploadSummary(upsert_data);
 
 			if (evals.length === 3) {
-				const upsert_score = {
-					timestamp: now.toISOString(),
-					readability: evals[0],
-					syntax: evals[1],
-					practice: evals[2]
-				};
-				fetch('http://127.0.0.1:8000/upload_scores', {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json'
-					},
-					body: JSON.stringify(upsert_score)
-				})
-				.then(response => {
-					if (!response.ok) {
-						vscode.window.showInformationMessage(`HTTP error! Status: ${response.statusText}`);
-					}
-				});
+				uploadMetrics(evals);
 			}
+
+			// const files = await retrieveCommentedFiles();
+
+			// const workspaceEdit = new vscode.WorkspaceEdit();
+
+			// for (const file of files) {
+			// 	try {
+			// 		const document = await vscode.workspace.openTextDocument(file);
+			// 		const text = document.getText();
+
+			// 		const newText = files[file];
+
+			// 		const fullRange = new vscode.Range(
+			// 			document.positionAt(0),
+			// 			document.positionAt(text.length)
+			// 		);
+
+			// 		workspaceEdit.replace(document.uri, fullRange, newText);
+			// 	} catch (error) {
+			// 		vscode.window.showErrorMessage(`Error processing file ${file.fsPath}: ${error}`);
+			// 	}
+			// }
+
+			// await vscode.workspace.applyEdit(workspaceEdit);
+
+			// await vscode.workspace.saveAll();
+
+			// vscode.window.showInformationMessage(`Modified ${files.length} files.`);
 
 		} else {
 			vscode.window.showErrorMessage('No active text editor found.');

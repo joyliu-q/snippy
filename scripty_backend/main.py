@@ -1,3 +1,4 @@
+import json
 from fastapi import FastAPI
 from pydantic import BaseModel
 from datetime import datetime
@@ -5,6 +6,8 @@ import os
 from typing import Any, Dict
 import iris
 from sentence_transformers import SentenceTransformer
+import numpy as np
+
 
 app = FastAPI()
 
@@ -70,15 +73,55 @@ async def upload_score(data: ScoreData):
         conn.rollback()
         return {"error": str(e)}
     
+@app.post("/upload_embedding")
+async def upload_embedding(data: SummaryData):
+    key = data.key
+    timestamp = data.timestamp
+    summary = data.summary
+
+    embedding = model.encode(summary).tolist()
+
+    try:
+        # Convert the embedding to a comma-separated string
+        embedding_vector = ','.join(map(str, embedding))  # Assuming `embedding` is a numpy array
+
+        # Define the SQL insert statement
+        sql = """
+        INSERT INTO students_embeddings (key, embedding, timestamp) 
+        VALUES (?, TO_VECTOR(?, 'DOUBLE'), TO_TIMESTAMP(?, 'YYYY-MM-DD HH24:MI:SS.FF'))
+        """
+
+        # Prepare the parameters
+        params = [key, embedding_vector, timestamp]
+
+        # Execute the SQL statement
+        cursor = conn.cursor()
+        cursor.execute(sql, params)
+        conn.commit()  # Commit the transaction
+        cursor.close() # Close the cursor
+        print("Record inserted successfully")
+    except Exception as e:
+        conn.rollback()  # Rollback in case of error
+        print(f"Error inserting record: {str(e)}")
+
+
 @app.get("/retrieve_by_embedding")
-async def retrieve_by_embedding(EmbeddingData):
-    summary = EmbeddingData.summary
-    num = EmbeddingData.num
+async def retrieve_by_embedding(data: EmbeddingData):
+    summary = data.summary
+    num = data.num
 
     issueDescription_vector = model.encode(summary, normalize_embeddings=True).tolist()
+    vector_as_np_array = np.array(issueDescription_vector, dtype=np.float32)  # Ensure correct dtype
+        # If the database accepts binary, you might do:
+    vector_as_binary = vector_as_np_array.tobytes()
+
     try:
-        sql = "select Top ? key, summary, timestamp from students_summary ORDER BY VECTOR_DOT_PRODUCT(summary, TO_VECTOR(?)) DESC"
-        cursor.execute(sql,[num,str(issueDescription_vector)])
+        sql = """
+    SELECT TOP ? key, summary, timestamp 
+    FROM students_summary 
+    ORDER BY VECTOR_DOT_PRODUCT(summary, ?) DESC
+    """
+        cursor.execute(sql,[num, vector_as_binary])
         fetched_data = cursor.fetchall()
         return {"data": fetched_data}
     except Exception as e:

@@ -8,6 +8,7 @@ fastapi = "*"
 uvicorn = "*"
 sentence-transformers = "*"
 intersystems-irispython = {file = "intersystems_irispython-3.2.0-py3-none-any.whl"}
+pandas = "*"
 
 [dev-packages]
 

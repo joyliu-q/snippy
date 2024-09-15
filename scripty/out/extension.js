@@ -76,7 +76,6 @@ function activate(context) {
                 enableScripts: true,
             });
             panel.webview.html = getWebviewContent(sections, evals, context.extensionUri, panel.webview);
-            // Define the data to be sent in the request body
             const now = new Date();
             const key = generateRandomString(7);
             const upsert_data = {
@@ -84,38 +83,29 @@ function activate(context) {
                 timestamp: now.toISOString(),
                 summary: sections.join('\n')
             };
-            fetch('http://127.0.0.1:8000/upload_summary', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(upsert_data)
-            })
-                .then(response => {
-                if (!response.ok) {
-                    vscode.window.showInformationMessage(`HTTP error! Status: ${response.statusText}`);
-                }
-            });
+            await (0, utils_1.uploadSummary)(upsert_data);
             if (evals.length === 3) {
-                const upsert_score = {
-                    timestamp: now.toISOString(),
-                    readability: evals[0],
-                    syntax: evals[1],
-                    practice: evals[2]
-                };
-                fetch('http://127.0.0.1:8000/upload_scores', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(upsert_score)
-                })
-                    .then(response => {
-                    if (!response.ok) {
-                        vscode.window.showInformationMessage(`HTTP error! Status: ${response.statusText}`);
-                    }
-                });
+                (0, utils_1.uploadMetrics)(evals);
             }
+            // const files = await retrieveCommentedFiles();
+            // const workspaceEdit = new vscode.WorkspaceEdit();
+            // for (const file of files) {
+            // 	try {
+            // 		const document = await vscode.workspace.openTextDocument(file);
+            // 		const text = document.getText();
+            // 		const newText = files[file];
+            // 		const fullRange = new vscode.Range(
+            // 			document.positionAt(0),
+            // 			document.positionAt(text.length)
+            // 		);
+            // 		workspaceEdit.replace(document.uri, fullRange, newText);
+            // 	} catch (error) {
+            // 		vscode.window.showErrorMessage(`Error processing file ${file.fsPath}: ${error}`);
+            // 	}
+            // }
+            // await vscode.workspace.applyEdit(workspaceEdit);
+            // await vscode.workspace.saveAll();
+            // vscode.window.showInformationMessage(`Modified ${files.length} files.`);
         }
         else {
             vscode.window.showErrorMessage('No active text editor found.');
