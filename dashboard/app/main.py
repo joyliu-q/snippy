@@ -35,6 +35,7 @@ class SmartContainerRequest(BaseModel):
 class StudentResponse(BaseModel):
     status = "success"
     students: t.List[Student]
+    dockerfile: str
 
 
 def spin_up_containers(num_containers, dockerfile_content) -> StudentResponse:
@@ -50,7 +51,7 @@ def spin_up_containers(num_containers, dockerfile_content) -> StudentResponse:
                     feedback="TODO: add feedback lol",
                 )
             )
-        return StudentResponse(ssh_commands=students)
+        return StudentResponse(ssh_commands=students, dockerfile=dockerfile_content)
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"An error occurred: {str(e)}"
