@@ -11,12 +11,15 @@
     "typecheck": "tsc"
   },
   "dependencies": {
+    "@clerk/remix": "^4.2.25",
+    "@mui/icons-material": "^6.1.0",
     "@radix-ui/react-slot": "^1.1.0",
     "@remix-run/node": "^2.12.0",
     "@remix-run/react": "^2.12.0",
     "@remix-run/serve": "^2.12.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "framer-motion": "^11.5.4",
     "isbot": "^4.1.0",
     "lucide-react": "^0.441.0",
     "react": "^18.2.0",
