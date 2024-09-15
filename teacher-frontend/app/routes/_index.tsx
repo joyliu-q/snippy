@@ -40,12 +40,15 @@ export default function Index() {
     null
   );
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
   };
 
   const handleConfigure = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const response = await fetch("http://localhost:8000/create_envs/manual", {
         method: "POST",
@@ -69,6 +72,8 @@ export default function Index() {
       });
     } catch (error: any) {
       setError(`Error: ${error.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
