@@ -40,12 +40,15 @@ export default function Index() {
     null
   );
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
   };
 
   const handleConfigure = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const response = await fetch("http://localhost:8000/create_envs/manual", {
         method: "POST",
@@ -69,6 +72,8 @@ export default function Index() {
       });
     } catch (error: any) {
       setError(`Error: ${error.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -126,8 +131,18 @@ export default function Index() {
             onClick={handleConfigure}
             className="mt-6 px-6 py-3 bg-blue-500"
           >
-            Configure
+            {loading ? "Configuring..." : "Configure"}
           </Button>
+
+          {loading && (
+              <div className="flex items-center justify-center mt-4">
+                <img
+                  src="https://media.discordapp.net/attachments/1284707830661648424/1284717063658537040/Scripty.png?ex=66e7a580&is=66e65400&hm=369df4cd36880403b2efd4ad0f2cd50ca60c0016a760170a8a3e7666797e8188&=&format=webp&quality=lossless&width=1020&height=980"
+                  alt="Loading..."
+                  className="w-16 h-16 animate-spin"
+                />
+              </div>
+            )}
 
           {output && (
           <div className="mt-6 w-full max-w-md p-4 border border-gray-300 rounded-md dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700">
