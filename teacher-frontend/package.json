@@ -13,6 +13,7 @@
   "dependencies": {
     "@clerk/remix": "^4.2.25",
     "@mui/icons-material": "^6.1.0",
+    "@radix-ui/react-select": "^2.1.1",
     "@radix-ui/react-separator": "^1.1.0",
     "@radix-ui/react-slot": "^1.1.0",
     "@remix-run/node": "^2.12.0",
