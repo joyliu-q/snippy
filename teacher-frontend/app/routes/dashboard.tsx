@@ -8,23 +8,48 @@ import {
   TableRow,
 } from "~/components/ui/table";
 import { Charts } from "~/components/Charts";
+import { useEffect, useState } from "react";
 
 export default function Dashboard() {
   // Load from database
-  const students = [
-    {
-      name: "Alice Smith",
-      email: "alice@example.com",
-      envKey: "abcd1234",
-      feedback: "Alice has been doing great in the Python module.",
-    },
-    {
-      name: "John Doe",
-      email: "john@example.com",
-      envKey: "efgh5678",
-      feedback: "John needs improvement in the JavaScript module.",
-    },
-  ];
+  const [students, setStudents] = useState([] as any[])
+  const [error, setError] = useState<string | null>(null);
+
+  // const students = [
+  //   {
+  //     name: "Alice Smith",
+  //     email: "alice@example.com",
+  //     envKey: "abcd1234",
+  //     feedback: "Alice has been doing great in the Python module.",
+  //   },
+  //   {
+  //     name: "John Doe",
+  //     email: "john@example.com",
+  //     envKey: "efgh5678",
+  //     feedback: "John needs improvement in the JavaScript module.",
+  //   },
+  // ];
+
+  const handleGetEnvs = async () => {
+    try {
+      const envs = await fetch("http://localhost:8000/envs");
+
+      if (!envs.ok) {
+        throw new Error(`Failed to get environments: ${envs.statusText}`);
+      }
+
+      const data = await envs.json();
+      if (data.students) {
+        setStudents(data.students);
+      }
+    } catch (error: any) {
+      setError(`Error: ${error.message}`);
+    }
+  };
+
+  useEffect(() => {
+    handleGetEnvs()
+  }, [])
 
   return (
     <Layout>
@@ -35,7 +60,7 @@ export default function Dashboard() {
             <TableRow>
               <TableHead className="w-[150px]">Name</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead>Environment Key</TableHead>
+              <TableHead>Environment</TableHead>
               <TableHead>Feedback</TableHead>
             </TableRow>
           </TableHeader>
@@ -44,7 +69,7 @@ export default function Dashboard() {
               <TableRow key={student.envKey}>
                 <TableCell className="font-medium">{student.name}</TableCell>
                 <TableCell>{student.email}</TableCell>
-                <TableCell>{student.envKey}</TableCell>
+                <TableCell>{student.ssh_command}</TableCell>
                 <TableCell>{student.feedback}</TableCell>
               </TableRow>
             ))}

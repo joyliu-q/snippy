@@ -60,8 +60,9 @@ dspy.settings.configure(lm=llm)
 
 docker_file_gen = DockerFileGenerator()
 
-def get_docker_file(prompt: str):
-    return docker_file_gen(prompt)
+
+def get_docker_file(prompt: str) -> str:
+    return docker_file_gen(prompt).docker_file_text
 
 
 #####################################################
@@ -89,7 +90,9 @@ class AnnotateQuerySignature(dspy.Signature):
 
     code = dspy.InputField()
     goal = dspy.InputField(description="the goal that the code is trying to achieve")
-    annotated_code = dspy.OutputField(description="the code annotated with comments. don't add any new code (just comments)")
+    annotated_code = dspy.OutputField(
+        description="the code annotated with comments. don't add any new code (just comments)"
+    )
     feedback = dspy.OutputField(description="assessment of the quality of the code")
     readability_score = dspy.OutputField(
         description="just a number. readability score in the scale of 0 (worst) to 100 (best)"
@@ -117,8 +120,8 @@ annot_gen = AnnotationGenerator()
 class ProgressSnapshot(BaseModel):
     code: str
     annotated_code: str
-    readability_score: int # between 0 to 100
-    correctness_score: int # between 0 to 100
+    readability_score: int  # between 0 to 100
+    correctness_score: int  # between 0 to 100
     improvement_tips: str
 
 
@@ -144,23 +147,21 @@ def get_number(num_text: str):
             break
     if pt == 0:
         return 0
-    return int(num_text[:pt+1])
+    return int(num_text[: pt + 1])
 
 
-def capture_progress_snapshot(code_files: t.List[CodeFile], goal: str) -> ProgressSnapshot:
+def capture_progress_snapshot(
+    code_files: t.List[CodeFile], goal: str
+) -> ProgressSnapshot:
     code = combine_codes(code_files)
-    res = annot_gen(
-        code=combine_codes(code_files),
-        goal=goal
-    )
+    res = annot_gen(code=combine_codes(code_files), goal=goal)
     return ProgressSnapshot(
         code=code,
         annotated_code=res.annotated_code,
-        readability_score=get_number(res.readability_score), # res.readability_score
-        correctness_score=get_number(res.correctness_score), # res.correctness_score
-        improvement_tips=res.improvement_tips
+        readability_score=get_number(res.readability_score),  # res.readability_score
+        correctness_score=get_number(res.correctness_score),  # res.correctness_score
+        improvement_tips=res.improvement_tips,
     )
-
 
 
 if __name__ == "__main__":

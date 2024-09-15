@@ -40,57 +40,62 @@ export default function Index() {
     null
   );
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
   };
 
-  // const handleConfigure = async () => {
-  //   try {
-  //     const response = await fetch("http://localhost:8000/create_envs", {
-  //       method: "POST",
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //       },
-  //       body: JSON.stringify({
-  //         num_containers: parseInt(numberValue),
-  //         dockerfile_content: textValue,
-  //       }),
-  //     });
-
-  //     if (!response.ok) {
-  //       throw new Error(`Failed to create containers: ${response.statusText}`);
-  //     }
-
-  //     const data = await response.json();
-  //     setOutput({
-  //       dockerfile: data.dockerfile,
-  //       students: data.students,
-  //     });
-  //   } catch (error: any) {
-  //     setError(`Error: ${error.message}`);
-  //   }
-  // };
-
   const handleConfigure = async () => {
-    setOutput({
-      dockerfile: `# Dummy Dockerfile\nFROM python:3.8\nRUN pip install flask\nCOPY . /app\nCMD ["python", "/app/run.py"]`,
-      students: [
-        {
-          name: "John Doe",
-          email: "john.doe@example.com",
-          ssh_command: "ssh john.doe@192.168.1.10",
-          feedback: "Environment is running fine.",
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch("http://localhost:8000/create_envs/manual", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-        {
-          name: "Jane Smith",
-          email: "jane.smith@example.com",
-          ssh_command: "ssh jane.smith@192.168.1.11",
-          feedback: "Everything set up perfectly!",
-        },
-      ],
-    });
+        body: JSON.stringify({
+          num_containers: parseInt(numberValue),
+          // prompt: textValue,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to create containers: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setOutput({
+        dockerfile: data.dockerfile,
+        students: data.students,
+      });
+    } catch (error: any) {
+      setError(`Error: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  // const handleConfigure = async () => {
+  //   setOutput({
+  //     dockerfile: `# Dummy Dockerfile\nFROM python:3.8\nRUN pip install flask\nCOPY . /app\nCMD ["python", "/app/run.py"]`,
+  //     students: [
+  //       {
+  //         name: "John Doe",
+  //         email: "john.doe@example.com",
+  //         ssh_command: "ssh john.doe@192.168.1.10",
+  //         feedback: "Environment is running fine.",
+  //       },
+  //       {
+  //         name: "Jane Smith",
+  //         email: "jane.smith@example.com",
+  //         ssh_command: "ssh jane.smith@192.168.1.11",
+  //         feedback: "Everything set up perfectly!",
+  //       },
+  //     ],
+  //   });
+  // };
 
   return (
     <div>
@@ -105,7 +110,7 @@ export default function Index() {
               value={textValue}
               onChange={(e) => setTextValue(e.target.value)}
               className="mt-2 p-3 text-black"
-              placeholder="Install Python..."/>
+              placeholder="I want a python 3.12 environment with numpy installed, supporting flask app development..."/>
           </div>
           <div className="flex flex-col w-full max-w-md">
             <label htmlFor="numberInput" className="text-lg font-medium">
@@ -126,8 +131,18 @@ export default function Index() {
             onClick={handleConfigure}
             className="mt-6 px-6 py-3 bg-blue-500"
           >
-            Configure
+            {loading ? "Configuring..." : "Configure"}
           </Button>
+
+          {loading && (
+              <div className="flex items-center justify-center mt-4">
+                <img
+                  src="https://media.discordapp.net/attachments/1284707830661648424/1284717063658537040/Scripty.png?ex=66e7a580&is=66e65400&hm=369df4cd36880403b2efd4ad0f2cd50ca60c0016a760170a8a3e7666797e8188&=&format=webp&quality=lossless&width=1020&height=980"
+                  alt="Loading..."
+                  className="w-16 h-16 animate-spin"
+                />
+              </div>
+            )}
 
           {output && (
           <div className="mt-6 w-full max-w-md p-4 border border-gray-300 rounded-md dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700">
