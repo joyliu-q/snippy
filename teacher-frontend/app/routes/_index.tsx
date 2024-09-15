@@ -10,7 +10,6 @@ import {
 } from '@clerk/remix'
 import { HeroParallax } from "~/components/ui/hero-parallax";
 
-// TODO: Update products
 const products = [
   {
     title: "Cursor",
@@ -144,7 +143,7 @@ export default function Index() {
             )}
 
           {output && (
-          <div className="mt-6 w-full max-w-md p-4 border border-gray-300 rounded-md dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700">
+          <div className="mt-6 w-full max-w-4xl p-4 border border-gray-300 rounded-md dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700">
             {/* Dockerfile */}
             <h3 className="text-lg font-medium">Generated Dockerfile:</h3>
             <pre className="mt-2 p-3 bg-gray-900 text-gray-100 rounded-md overflow-auto">
