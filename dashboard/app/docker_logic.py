@@ -8,11 +8,16 @@ import os
 
 from app.utils import run_command, DEFAULT_DOCKERFILE_CONTENT, EnvironmentConfig
 
+from utils.llm_queries import Project
 
-def _build_docker_image(dockerfile_content: str, image_name: str):
+
+def _build_docker_image(dockerfile_content: str, image_name: str, project: Project):
     with tempfile.TemporaryDirectory() as temp_dir:
         shutil.copytree("./common", os.path.join(temp_dir, "common"))
         dockerfile_path = os.path.join(temp_dir, "Dockerfile")
+
+        project_path = os.path.join(temp_dir, "common", "projects", "my_project")
+        project.write_to_folder(project_path)
 
         if not dockerfile_content:
             dockerfile_content = DEFAULT_DOCKERFILE_CONTENT
@@ -27,12 +32,13 @@ def _build_docker_image(dockerfile_content: str, image_name: str):
         )
 
 
-def wrap_docker_image(dockerfile_content: str, image_name: str) -> str:
+def wrap_docker_image(dockerfile_content: str, image_name: str, project: Project) -> str:
     """Include summarization monitor code in user docker image."""
 
     inner_image_name = f"{image_name}-inner"
     _build_docker_image(
-        dockerfile_content=dockerfile_content, image_name=inner_image_name
+        dockerfile_content=dockerfile_content, image_name=inner_image_name,
+        project=project
     )
 
     # TODO: make main.py a binary
@@ -43,7 +49,7 @@ FROM {inner_image_name}
 COPY ./common /etc/scripty
 
 # TODO hacky, later we want not hardcoded started code
-COPY ./common/projects/python_helloworld /home/project
+COPY ./common/projects/my_project /home/project
 RUN pip install -r /etc/scripty/server/requirements.txt
 
 EXPOSE 5000
@@ -75,6 +81,7 @@ def find_available_ports(
 
 def create_docker_containers(
     num_containers: int,
+    project: Project,
     dockerfile_content: t.Optional[str] = None,
     env_name: t.Optional[str] = None,
     start_port_range: int = 8000,
@@ -86,7 +93,7 @@ def create_docker_containers(
 
     environments = []
     image_name = f"image-{env_name}"
-    wrap_docker_image(dockerfile_content=dockerfile_content, image_name=image_name)
+    wrap_docker_image(dockerfile_content=dockerfile_content, image_name=image_name, project=project)
 
     ports = find_available_ports(
         num_ports=num_containers * 2,

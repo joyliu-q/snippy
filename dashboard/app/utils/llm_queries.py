@@ -137,6 +137,14 @@ class Project(BaseModel):
     goal: str
     code_files: t.List[CodeFile]
 
+    def write_to_folder(self, path):
+        with open(os.path.join(path, "todo.txt"), "w") as f:
+            f.write(self.goal)
+        # TODO we are assuming everything is flat. we should probably store the file dir instead of the file name
+        for code_file in self.code_files:
+            with open(os.path.join(path, code_file.filename), "w") as f:
+                f.write(code_file.code_str)
+
 
 def combine_codes(project_code: Project):
     result = ""
@@ -217,6 +225,49 @@ def capture_progress_snapshot_by_url(env_url: str) -> ProgressSnapshot:
     project: Project = get_request_pydantic_model(req_url, Project)
     return capture_progress_snapshot(project)
 
+
+class AutoProjectSignature(dspy.Signature):
+    """
+        create a minimal one file project for a student to learn the {goal}
+    """
+
+    goal = dspy.InputField(description="what student needs to learn")
+    filename = dspy.OutputField(description="filename")
+    code_str = dspy.OutputField(description="contents of the code")
+
+
+class AutoProjectGen(dspy.Module):
+    def __init__(self):
+        super().__init__()
+        # we can also use ChainOfThought
+        self.predict = dspy.ChainOfThought(AutoProjectSignature)
+
+    def forward(self, goal: str):
+        res = self.predict(goal=goal)
+        return CodeFile(
+            filename = res.filename,
+            code_str = res.code_str
+        )
+
+auto_project_gen = AutoProjectGen()
+
+def generate_project(goal: str):
+    return Project(
+        goal=goal,
+        code_files=[auto_project_gen(goal)]
+    )
+
+
+def generate_default_project(goal: str):
+    return Project(
+        goal=goal,
+        code_files=[
+            CodeFile(filename="helloworld.py", code_str="""
+def hello_world():
+    a = 2
+""")
+        ]
+    )
 
 if __name__ == "__main__":
     res = capture_progress_snapshot_by_url("http://192.168.49.2:31985")

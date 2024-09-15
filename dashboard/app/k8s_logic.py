@@ -25,7 +25,7 @@ def set_minikube_docker_env():
 
 
 def create_kubernetes_deployments(
-    num_containers, dockerfile_content=None, env_name=None
+    num_containers, project: Project, dockerfile_content=None, env_name=None
 ) -> t.List[EnvironmentConfig]:
     config.load_kube_config()
     core_v1_api = client.CoreV1Api()
@@ -39,7 +39,7 @@ def create_kubernetes_deployments(
         dockerfile_content if dockerfile_content else DEFAULT_DOCKERFILE_CONTENT
     )
     set_minikube_docker_env()
-    wrap_docker_image(dockerfile_content=dockerfile_content, image_name=image_name)
+    wrap_docker_image(dockerfile_content=dockerfile_content, image_name=image_name, project=project)
 
     run_command(["minikube", "image", "load", image_name])
     time.sleep(1)

@@ -1,4 +1,6 @@
+from click import prompt
 from fastapi import FastAPI, HTTPException
+from jedi import get_default_project
 from pydantic import BaseModel, Field
 import typing as t
 import redis
@@ -10,11 +12,15 @@ from app.utils import (
     ProgressSnapshot,
     capture_progress_snapshot_by_url,
 )
+from app.utils import generate_project, generate_default_project
+
 from faker import Faker
 from fastapi.middleware.cors import CORSMiddleware
 
 # from app.docker_logic import create_docker_containers
 from app.k8s_logic import create_kubernetes_deployments
+
+from utils.llm_queries import Project
 
 app = FastAPI()
 fake = Faker()
@@ -108,13 +114,13 @@ class ContainerRequest(BaseModel):
 class SmartContainerRequest(BaseModel):
     num_containers: int
     prompt: str
-
+    project_prompt: str = ""
 
 def spin_up_containers(
-    num_containers, dockerfile_content=DEFAULT_DOCKERFILE_CONTENT
+    num_containers, project: Project, dockerfile_content=DEFAULT_DOCKERFILE_CONTENT
 ) -> Environment:
     try:
-        env_configs = create_kubernetes_deployments(num_containers, dockerfile_content)
+        env_configs = create_kubernetes_deployments(num_containers, dockerfile_content, project=project)
         students = []
         for env_config in env_configs:
             env = StudentEnv(
@@ -143,8 +149,9 @@ def spin_up_containers(
 async def create_envs_manual(request: ContainerRequest) -> Environment:
     num_containers = request.num_containers
     dockerfile_content = request.dockerfile_content
+    project = generate_project(goal=request.project_prompt) if request.project_prompt else generate_default_project()
     return spin_up_containers(
-        num_containers=num_containers, dockerfile_content=dockerfile_content
+        num_containers=num_containers, dockerfile_content=dockerfile_content, project=project
     )
 
 
@@ -152,8 +159,9 @@ async def create_envs_manual(request: ContainerRequest) -> Environment:
 async def create_envs(request: SmartContainerRequest) -> Environment:
     num_containers = request.num_containers
     dockerfile_content = get_docker_file(request.prompt)
+    project = generate_project(goal=request.project_prompt) if request.project_prompt else generate_default_project()
     return spin_up_containers(
-        num_containers=num_containers, dockerfile_content=dockerfile_content
+        num_containers=num_containers, dockerfile_content=dockerfile_content, project=project
     )
 
 
