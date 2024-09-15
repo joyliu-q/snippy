@@ -1,4 +1,16 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-  
+
+:root {
+    --color-steps: #4CAF50;
+    --color-resting: #2196F3;
+    --color-move: #FFC107;
+    --color-exercise: #FF5722;
+    --color-stand: #9C27B0;
+    --color-calories: #E91E63;
+    --color-time: #00BCD4;
+    --chart-1: 215 100% 50%;
+    --chart-2: 280 100% 50%;
+    --chart-3: 35 100% 50%;
+  }

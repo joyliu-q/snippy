@@ -10,7 +10,7 @@ import {
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col min-h-screen bg-black text-white">
-      <header className="sticky top-0 pt-14 pb-2">
+      <header className="top-0 pt-14 pb-2">
         <div className="relative w-full">
           <nav className="flex justify-center space-x-8 text-white">
             <Link

@@ -6,14 +6,13 @@ import uuid
 import socket
 import os
 
-from app.utils import run_command, DEFAULT_DOCKERFILE_CONTENT
+from app.utils import run_command, DEFAULT_DOCKERFILE_CONTENT, EnvironmentConfig
 
 
 def _build_docker_image(dockerfile_content: str, image_name: str):
     with tempfile.TemporaryDirectory() as temp_dir:
-        common_dir = os.path.join(temp_dir, "common")
-        shutil.copytree("./common", common_dir)
-        dockerfile_path = os.path.join(common_dir, "Dockerfile")
+        shutil.copytree("./common", os.path.join(temp_dir, "common"))
+        dockerfile_path = os.path.join(temp_dir, "Dockerfile")
 
         if not dockerfile_content:
             dockerfile_content = DEFAULT_DOCKERFILE_CONTENT
@@ -40,19 +39,17 @@ def wrap_docker_image(dockerfile_content: str, image_name: str) -> str:
     wrapped_dockerfile_content = f"""
 FROM {inner_image_name}
 
-EXPOSE 22
+# All set-up scripts live in /etc/scripty
+COPY ./common /etc/scripty
+
+# TODO hacky, later we want not hardcoded started code
+COPY ./common/projects/python_helloworld /home/project
+RUN pip install -r /etc/scripty/server/requirements.txt
+
 EXPOSE 5000
+EXPOSE 22
 
-# TODO hacky use pip requirements later
-COPY requirements.txt requirements.txt
-RUN pip install -r requirements.txt
-COPY ./container /home/server
-
-# TODO hacky later we want teacher to be able to submit the project through website
-COPY ./projects/python_helloworld /home/project
-
-RUN /usr/sbin/sshd -D &
-CMD ["python", "/home/server/main.py"]
+CMD python /etc/scripty/server/main.py & /usr/sbin/sshd -D
 """
 
     _build_docker_image(
@@ -82,30 +79,36 @@ def create_docker_containers(
     env_name: t.Optional[str] = None,
     start_port_range: int = 8000,
     end_port_range: int = 9000,
-):
+) -> t.List[EnvironmentConfig]:
 
     if not env_name:
         env_name = uuid.uuid4()
 
-    ssh_commands = []
+    environments = []
     image_name = f"image-{env_name}"
     wrap_docker_image(dockerfile_content=dockerfile_content, image_name=image_name)
 
     ports = find_available_ports(
-        num_ports=num_containers,
+        num_ports=num_containers * 2,
         start_port_range=start_port_range,
         end_port_range=end_port_range,
     )
     for i in range(num_containers):
         container_name = f"container-{env_name}-{i+1}"
 
-        port = ports[i]
-        run_command(f"docker run -d --name {container_name} -p {port}:22 -p 5000:5000 {image_name}")
+        port_one = ports[i]
+        port_two = ports[num_containers + i]
+        run_command(
+            f"docker run -d --name {container_name} -p {port_one}:22 -p {port_two}:5000 {image_name}"
+        )
         container_name = f"container-{env_name}-{i+1}"
 
         time.sleep(1)
 
-        ssh_command = f"ssh root@localhost -p {port}"
-        ssh_commands.append(ssh_command)
+        ssh_command = f"ssh root@localhost -p {port_one}"
+        http_url = f"localhost:{port_two}"
+        environments.append(
+            EnvironmentConfig(ssh_command=ssh_command, summary_server_url=http_url)
+        )
 
-    return ssh_commands
+    return environments

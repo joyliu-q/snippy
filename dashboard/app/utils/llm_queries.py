@@ -9,9 +9,11 @@ class DockerFileQuerySignature(dspy.Signature):
     """
         write a docker image that contains all the environments described in the description
 
-        make sure ssh is installed on the server
+        make sure to add a configuration to allow ssh into this container.
+        make sure that this environment contains python, if it is not specified already
+        make sure to expose port 22 as well and not the inputted port
         users should be able to ssh into this container and interactively use it without any password
-        python should be installed in the docker file
+        make sure python is installed in the environment
 
         an example of Dockerfile that is generated for python is as follows:
 
@@ -75,13 +77,20 @@ class AnnotateQuerySignature(dspy.Signature):
     metrics to be assessed are: correctness, readability, and simplicity
     comments are not necessary to achieve readability score
     """
+
     code = dspy.InputField()
     goal = dspy.InputField(description="the goal that the code is trying to achieve")
     annotated_code = dspy.OutputField(description="the code annotated with comments. don't add any new code (just comments)")
     feedback = dspy.OutputField(description="assessment of the quality of the code")
-    readability_score = dspy.OutputField(description="just a number. readability score in the scale of 0 (worst) to 100 (best)")
-    correctness_score = dspy.OutputField(description="just a number. correctness score in the scale of 0 (worst) to 100 (best)")
-    improvement_tips = dspy.OutputField(description="just a number. up to 5 things (just keywords, comma seperated) that can be improved")
+    readability_score = dspy.OutputField(
+        description="just a number. readability score in the scale of 0 (worst) to 100 (best)"
+    )
+    correctness_score = dspy.OutputField(
+        description="just a number. correctness score in the scale of 0 (worst) to 100 (best)"
+    )
+    improvement_tips = dspy.OutputField(
+        description="just a number. up to 5 things (just keywords, comma seperated) that can be improved"
+    )
 
 
 class AnnotationGenerator(dspy.Module):
@@ -165,7 +174,7 @@ def hello_world():
                 goal="write a function to print hello world"
     ))
 
-    print('----------------------------')
+    print("----------------------------")
 
     show_progress(capture_progress_snapshot(code_files=[CodeFile(filename="helloworld.py", code_str="""
 def hello_world():

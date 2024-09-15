@@ -1,4 +1,10 @@
 import subprocess
+from pydantic import BaseModel
+
+
+class EnvironmentConfig(BaseModel):
+    ssh_command: str
+    summary_server_url: str
 
 
 def run_command(command: str):

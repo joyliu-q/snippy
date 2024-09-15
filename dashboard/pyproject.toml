@@ -17,6 +17,7 @@ kubernetes = "^30.1.0"
 dspy = "^0.1.5"
 python-dotenv = "^1.0.1"
 faker = "^28.4.1"
+black = "^24.8.0"
 
 
 [build-system]

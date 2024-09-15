@@ -7,6 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table";
+import { Charts } from "~/components/Charts";
 
 export default function Dashboard() {
   // Load from database
@@ -27,7 +28,8 @@ export default function Dashboard() {
 
   return (
     <Layout>
-      <div className="max-w-4xl mx-auto overflow-x-auto pt-20">
+      <h1 className="text-2xl font-bold text-center pb-10">Student Feedback</h1>
+      <div className="max-w-4xl mx-auto overflow-x-auto pb-20">
         <Table>
           <TableHeader>
             <TableRow>
@@ -49,6 +51,8 @@ export default function Dashboard() {
           </TableBody>
         </Table>
       </div>
+      <h1 className="text-2xl font-bold text-center pb-10">Class Progress</h1>
+      <Charts />
     </Layout>
   );
 }
