@@ -1,16 +1,18 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-// import * as dotenv from 'dotenv';
+import {generate} from './utils';
+import {strengthsAndWeaknesses} from './prompts';
+import {metrics} from './prompts';
 
-// dotenv.config();
-
-interface OpenAIResponse {
-	choices: {
-	  message: {
-		content: string;
-	  };
-	}[];
+function generateRandomString(length: number): string {
+	const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+	let result = '';
+	for (let i = 0; i < length; i++) {
+	  const randomIndex = Math.floor(Math.random() * characters.length);
+	  result += characters[randomIndex];
+	}
+	return result;
   }
 
 // This method is called when your extension is activated
@@ -40,51 +42,36 @@ export function activate(context: vscode.ExtensionContext) {
 			// }
 
 			// Run analysis here
-			const response = await fetch("https://proxy.tune.app/chat/completions", {
-				method: "POST",
-				headers: {
-				  "Content-Type": "application/json",
-				  "Authorization": "sk-tune-Sjre53YgSZ3Oufkv5skl1Z2kyN6NjSLfkhG"
-				},
-				body: JSON.stringify({
-				  temperature: 0.9, 
-				  messages:  [
-					{
-					  "role": "user",
-					  "content": `Analyze the weakness of the following code: ${fileContent}`
-					}
-				  ],
-				  model: "benxu/benxu-gpt-4o-mini",
-				  stream: false,
-				  "frequency_penalty":  0.2,
-				  "max_tokens": 100
-				})
-			  });
-			  
-			if (!response.ok) {
-				throw new Error(`HTTP error! status: ${response.status}`);
+			const content = await generate(fileContent, strengthsAndWeaknesses);
+			let sections: string[] = [];
+			if (content.includes("##")) {
+				sections = content.split("##");
+			} else {
+				sections = [content];
 			}
-			
-			const data = await response.json() as OpenAIResponse;
+			const evaluations = await generate(fileContent, metrics);
 
-			if (!data.choices || !data.choices.length) {
-				vscode.window.showErrorMessage('No analysis data received.');
-				return;
-			}
-
-			// Assuming the desired content is under a key like 'choices' or similar
-			const content = data.choices[0].message.content;
+			const evals = evaluations.split(',');
 
 			// Show the content in VS Code
-			vscode.window.showInformationMessage(content);
+			const panel = vscode.window.createWebviewPanel(
+				'analysisResult',
+				'Analysis Result',
+				vscode.ViewColumn.Three,
+					
+				{
+					enableScripts: true,
+				}
+			);
+            panel.webview.html = getWebviewContent(sections, evals);
 
 			// Define the data to be sent in the request body
 			const now = new Date();
 
 			const upsert_data = {
-				key: "example_key",
+				key: generateRandomString(7),
 				timestamp: now.toISOString(),
-				summary: content
+				summary: sections.join('\n')
 			};
 
 			fetch('http://127.0.0.1:8000/upload_summary', {
@@ -98,14 +85,28 @@ export function activate(context: vscode.ExtensionContext) {
 				if (!response.ok) {
 					vscode.window.showInformationMessage(`HTTP error! Status: ${response.statusText}`);
 				}
-				return response.json();
-			})
-			.then(result => {
-				console.log('Success:', result);
-			})
-			.catch(error => {
-				console.error('Error:', error);
 			});
+
+			if (evals.length === 3) {
+				const upsert_score = {
+					timestamp: now.toISOString(),
+					readability: evals[0],
+					syntax: evals[1],
+					practice: evals[2]
+				};
+				fetch('http://127.0.0.1:8000/upload_scores', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify(upsert_score)
+				})
+				.then(response => {
+					if (!response.ok) {
+						vscode.window.showInformationMessage(`HTTP error! Status: ${response.statusText}`);
+					}
+				});
+			}
 
 		} else {
 			vscode.window.showErrorMessage('No active text editor found.');
@@ -118,3 +119,70 @@ export function activate(context: vscode.ExtensionContext) {
 
 // This method is called when your extension is deactivated
 export function deactivate() {}
+
+function getWebviewContent(sections: string[], evals: string[]) {
+	// vscode.window.showInformationMessage(content);
+    // // Split content into sections based on "###" delimiter
+
+    const sectionsHTML = sections.map(section => `<p>${(section.trim())}</p>`).join('');
+
+    return `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https:; script-src 'unsafe-eval'; style-src 'unsafe-inline';">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Analysis Result</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    padding: 20px;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: flex-start;
+                    align-items: stretch;
+                    height: 100vh;
+                    box-sizing: border-box;
+                    overflow-y: auto;
+                    overflow-x: hidden; /* Prevent horizontal overflow */
+                    max-width: 100%;
+                }
+                .message-box {
+                    border: 1px solid #ccc;
+                    padding: 20px;
+                    font-size: 20px;
+                    line-height: 1.8; /* Increased line height for more vertical spacing */
+                    width: calc(100% - 40px); /* Equal padding on both sides (20px left + 20px right) */
+                    margin: 0 auto; /* Center the box horizontally */
+                    box-sizing: border-box;
+                    word-wrap: break-word; /* Ensure text wraps within the container */
+                }
+                ul {
+                    margin: 0;
+                    padding: 0 0 20px 20px; /* Added bottom padding for vertical spacing */
+                    list-style-type: disc;
+                    font-size: 18px;
+                }
+                li {
+                    margin-bottom: 10px; /* Space out list items */
+                }
+                p {
+                    font-size: 18px;
+                    margin-bottom: 20px; /* Increased margin for more vertical space */
+                }
+                h1 {
+                    font-size: 24px;
+                    margin-bottom: 20px; /* Space out the heading */
+                }
+            </style>
+        </head>
+        <body>
+            <div class="message-box">
+                <h1>Here's your feedback!</h1>
+                ${sectionsHTML}
+				${evals.length === 3 ? `Readability: ${evals[0]}, Syntax: ${evals[1]}, Good Practices: ${evals[2]}` : ''}
+            </div>
+        </body>
+        </html>`;
+}
