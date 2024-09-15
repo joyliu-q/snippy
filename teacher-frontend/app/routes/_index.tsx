@@ -5,15 +5,12 @@ import { Textarea } from "~/components/ui/textarea"
 import { Input } from "~/components/ui/input"
 import { Button } from "~/components/ui/button"
 import {
-  SignInButton,
-  SignOutButton,
-  SignUpButton,
   SignedIn,
   SignedOut,
-  UserButton,
 } from '@clerk/remix'
 import { HeroParallax } from "~/components/ui/hero-parallax";
 
+// TODO: Update products & parallax spacing
 const products = [
   {
     title: "Moonbeam",
@@ -38,7 +35,10 @@ const products = [
 export default function Index() {
   const [textValue, setTextValue] = useState("");
   const [numberValue, setNumberValue] = useState("");
-  const [output, setOutput] = useState("");
+  const [output, setOutput] = useState<{ dockerfile: string; students: any[] } | null>(
+    null
+  );
+  const [error, setError] = useState<string | null>(null);
 
   const handleConfigure = async () => {
     try {
@@ -49,7 +49,7 @@ export default function Index() {
         },
         body: JSON.stringify({
           num_containers: parseInt(numberValue),
-          dockerfile_content: textValue || null,
+          dockerfile_content: textValue,
         }),
       });
 
@@ -58,18 +58,20 @@ export default function Index() {
       }
 
       const data = await response.json();
-      setOutput(`Containers created successfully. SSH commands: ${data.ssh_commands}`);
-      // Need to connect this to database to then populate dashboard.tsx
-    } catch (error: any) {
-      setOutput(`Error: ${error.message}`);
-    }
+      setOutput({
+        dockerfile: data.dockerfile,
+        students: data.students,
+      });
+   } catch (error: any) {
+    setError(`Error: ${error.message}`);
+  }
   };
 
   return (
     <div>
       <SignedIn>
         <Layout>
-        <div className="flex h-screen flex-col items-center gap-6 pt-20 bg-black text-white">
+        <div className="flex h-screen flex-col items-center gap-6 bg-black text-white">
           <div className="flex flex-col w-full max-w-md">
             <label htmlFor="textInput" className="text-lg font-medium">
               Generate Set Up
@@ -77,7 +79,7 @@ export default function Index() {
             <Textarea
               value={textValue}
               onChange={(e) => setTextValue(e.target.value)}
-              className="mt-2 p-3"
+              className="mt-2 p-3 text-black"
               placeholder="Install Python..."/>
           </div>
 
@@ -90,8 +92,9 @@ export default function Index() {
               id="numberInput"
               value={numberValue}
               onChange={(e) => setNumberValue(e.target.value)}
-              className="mt-2 p-3"
+              className="mt-2 p-3 text-black"
               placeholder="0"
+              min={0}
             />
           </div>
 
@@ -103,13 +106,28 @@ export default function Index() {
           </Button>
 
           {output && (
-            <div className="mt-6 w-full max-w-md p-4 border border-gray-300 rounded-md dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700">
-              <h3 className="text-lg font-medium">Generated Docker file:</h3>
-              <pre className="mt-2 p-3 bg-gray-900 text-gray-100 rounded-md overflow-auto">
-                <code className="text-sm">{output}</code>
-              </pre>
-            </div>
-          )}
+          <div className="mt-6 w-full max-w-md p-4 border border-gray-300 rounded-md dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700">
+            {/* Dockerfile */}
+            <h3 className="text-lg font-medium">Generated Dockerfile:</h3>
+            <pre className="mt-2 p-3 bg-gray-900 text-gray-100 rounded-md overflow-auto">
+              <code className="text-sm">{output.dockerfile}</code>
+            </pre>
+
+            {/* Display Student SSH Commands */}
+            <h3 className="text-lg font-medium mt-6">Student SSH Commands:</h3>
+            {output.students.map((student, index) => (
+              <div key={index} className="mt-2">
+                <p>
+                  <strong>{student.name}</strong> - {student.email}
+                </p>
+                <pre className="mt-1 p-2 bg-gray-700 text-gray-100 rounded-md overflow-auto">
+                  <code>{student.ssh_command}</code>
+                </pre>
+                <p className="text-sm mt-1 text-gray-400">{student.feedback}</p>
+              </div>
+            ))}
+          </div>
+        )}
         </div>
       </Layout>
     </SignedIn>

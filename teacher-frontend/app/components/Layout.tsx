@@ -6,6 +6,7 @@ import {
   SignedOut,
 } from '@clerk/remix';
 
+// TODO: Children overlap header on scroll
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col min-h-screen bg-black text-white">
@@ -39,8 +40,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 pt-20">{children}</main>
     </div>
   );
 }
