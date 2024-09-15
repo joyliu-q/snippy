@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   Area,
   AreaChart,
@@ -153,21 +153,45 @@ const chartData = [
 { date: "2024-06-30", desktop: 446, mobile: 400 },
 ]
 
+const envHistories = [
+    {
+      env_name: "Joy Liu",
+      ssh_command: "ssh joy.liu@192.168.1.10",
+      entries: [
+        {
+          env_name: "Joy Liu",
+          ssh_command: "ssh joy.liu@192.168.1.10",
+          readability_score: 85,
+          correctness_score: 90,
+          timestamp: 1694025600,
+        },
+      ],
+    },
+  ];
+
+function processEnvHistory(envHistory: any) {
+    return envHistory.entries.map((entry: any) => ({
+        date: new Date(entry.timestamp * 1000).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        }),
+        readability: entry.readability_score,
+        correctness: entry.correctness_score,
+    }));
+}
+
 export function Charts() {
-    const [timeRange, setTimeRange] = useState("")
-    const filteredData = chartData.filter((item) => {
-    const date = new Date(item.date)
-    const now = new Date()
-    let daysToSubtract = 90
-    if (timeRange === "30d") {
-      daysToSubtract = 30
-    } else if (timeRange === "7d") {
-      daysToSubtract = 7
-    }
-    now.setDate(now.getDate() - daysToSubtract)
-    return date >= now
-  })
-  return (
+    const [selectedStudent, setSelectedStudent] = useState("");
+    const [filteredData, setFilteredData] = useState([]);
+
+    useEffect(() => {
+        const studentData = envHistories.find((history) => history.env_name.toLowerCase() === selectedStudent.toLowerCase());
+        if (studentData) {
+        setFilteredData(processEnvHistory(studentData));
+        }
+    }, [selectedStudent]);
+    
+    return (
     <div className="flex flex-col items-center justify-center">
     <Card className="w-[1090px]">
       <CardHeader className="flex items-center gap-2 space-y-0 border-b py-5 sm:flex-row">
@@ -177,7 +201,7 @@ export function Charts() {
             Showing student correctness & readability for the last month
           </CardDescription>
         </div>
-        <Select value={timeRange} onValueChange={setTimeRange}>
+        <Select value={selectedStudent} onValueChange={setSelectedStudent}>
           <SelectTrigger
             className="w-[160px] rounded-lg sm:ml-auto"
             aria-label="Select a student"
