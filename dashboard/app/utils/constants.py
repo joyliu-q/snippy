@@ -10,11 +10,3 @@ RUN sed -i 's/#UsePAM yes/UsePAM no/' /etc/ssh/sshd_config
 EXPOSE 22
 CMD ["/usr/sbin/sshd", "-D"]
 """
-
-
-from pydantic import BaseModel
-
-
-class EnvironmentConfig(BaseModel):
-    ssh_command: str
-    summary_server_url: str
