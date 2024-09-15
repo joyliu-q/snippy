@@ -19,6 +19,7 @@ username = "demo"
 password = "demo"
 
 conn = iris.connect(connection_string, username, password)
+
 cursor = conn.cursor()
 
 model = SentenceTransformer('all-MiniLM-L6-v2')
