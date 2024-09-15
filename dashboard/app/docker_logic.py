@@ -21,7 +21,7 @@ def _build_docker_image(dockerfile_content: str, image_name: str):
         with open(dockerfile_path, "w", encoding="utf-8") as f:
             f.write(dockerfile_content)
 
-        build_command = f"docker build -t {image_name} {temp_dir}"
+        build_command = f"docker build -t {image_name} {common_dir}"
         print(f"Building Docker image {image_name}...")
         run_command(
             build_command,
