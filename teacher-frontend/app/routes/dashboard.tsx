@@ -11,9 +11,9 @@ import { Charts } from "~/components/Charts";
 import { useEffect, useState } from "react";
 
 export default function Dashboard() {
-  // Load from database
   const [students, setStudents] = useState([] as any[])
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   // const students = [
   //   {
@@ -31,6 +31,7 @@ export default function Dashboard() {
   // ];
 
   const handleGetEnvs = async () => {
+    setLoading(true);
     try {
       const envs = await fetch("http://localhost:8000/students");
 
@@ -44,6 +45,8 @@ export default function Dashboard() {
       }
     } catch (error: any) {
       setError(`Error: ${error.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -53,6 +56,15 @@ export default function Dashboard() {
 
   return (
     <Layout>
+      {loading ? 
+      <div className="flex items-center justify-center mt-4">
+      <img
+        src="https://media.discordapp.net/attachments/1284707830661648424/1284717063658537040/Scripty.png?ex=66e7a580&is=66e65400&hm=369df4cd36880403b2efd4ad0f2cd50ca60c0016a760170a8a3e7666797e8188&=&format=webp&quality=lossless&width=1020&height=980"
+        alt="Loading..."
+        className="w-16 h-16 animate-spin"
+      />
+    </div> : (
+        <>
       <h1 className="text-2xl font-bold text-center pb-10">Student Feedback</h1>
       <div className="max-w-4xl mx-auto overflow-x-auto pb-20">
         <Table>
@@ -61,7 +73,9 @@ export default function Dashboard() {
               <TableHead className="w-[150px]">Name</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Environment</TableHead>
-              <TableHead>Feedback</TableHead>
+              <TableHead className="w-[400px]">Feedback</TableHead>
+              <TableHead>Correctness</TableHead>
+              <TableHead>Readability</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -71,13 +85,17 @@ export default function Dashboard() {
                 <TableCell>{student.email}</TableCell>
                 <TableCell>{student.ssh_command}</TableCell>
                 <TableCell>{student.feedback}</TableCell>
+                <TableCell>{student.correctness_score}</TableCell>
+                <TableCell>{student.readability_score}</TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </div>
-      <h1 className="text-2xl font-bold text-center pb-10">Class Progress</h1>
+      <h1 className="text-2xl font-bold text-center pb-20">Class Progress</h1>
       <Charts />
+      </>
+      )}
     </Layout>
   );
 }

@@ -9,7 +9,6 @@ import {
   SignedOut,
 } from '@clerk/remix'
 import { HeroParallax } from "~/components/ui/hero-parallax";
-// import ContentPasteIcon from '@mui/icons-material/ContentPaste';
 
 // TODO: Update products
 const products = [
@@ -40,7 +39,7 @@ export default function Index() {
     null
   );
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -165,7 +164,6 @@ export default function Index() {
                 >
                   Copy
                 </Button>
-                {/* <ContentPasteIcon /> */}
               </div>
             ))}
           </div>
