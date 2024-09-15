@@ -7,7 +7,7 @@ import os
 import time
 import uuid
 
-from app.utils import DEFAULT_DOCKERFILE_CONTENT, run_command, build_docker_image
+from app.utils import DEFAULT_DOCKERFILE_CONTENT, run_command, wrap_docker_image
 import os
 
 
@@ -39,7 +39,7 @@ def create_kubernetes_deployments(
         dockerfile_content if dockerfile_content else DEFAULT_DOCKERFILE_CONTENT
     )
     set_minikube_docker_env()
-    build_docker_image(dockerfile_content=dockerfile_content, image_name=image_name)
+    wrap_docker_image(dockerfile_content=dockerfile_content, image_name=image_name)
 
     run_command(["minikube", "image", "load", image_name])
     time.sleep(1)

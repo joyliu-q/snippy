@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from typing import Optional
 
-from app.docker_logic import create_docker_containers
+# from app.docker_logic import create_docker_containers
 from app.utils import get_docker_file
 from app.k8s_logic import create_kubernetes_deployments
 
@@ -15,6 +15,11 @@ class ContainerRequest(BaseModel):
     dockerfile_content: Optional[str] = Field(
         None, description="Optional custom Dockerfile content"
     )
+
+
+class Student(BaseModel):
+    ssh_command: str
+    feedback: str
 
 
 class SmartContainerRequest(BaseModel):
@@ -42,8 +47,8 @@ def spin_up_containers(num_containers, dockerfile_content):
 #         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
 
-@app.post("/create_envs")
-async def create_envs(request: ContainerRequest):
+@app.post("/create_envs/manual")
+async def create_envs_manual(request: ContainerRequest):
     num_containers = request.num_containers
     dockerfile_content = request.dockerfile_content
     return spin_up_containers(
@@ -51,8 +56,8 @@ async def create_envs(request: ContainerRequest):
     )
 
 
-@app.post("/create_envs/text")
-async def create_envs_text(request: SmartContainerRequest):
+@app.post("/create_envs")
+async def create_envs(request: SmartContainerRequest):
     num_containers = request.num_containers
     dockerfile_content = get_docker_file(request.prompt)
     spin_up_containers(

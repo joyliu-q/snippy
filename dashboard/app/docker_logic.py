@@ -3,7 +3,7 @@ import typing as t
 import uuid
 import socket
 
-from app.utils import run_command, build_docker_image
+from app.utils import run_command, wrap_docker_image
 
 
 def find_available_ports(
@@ -35,7 +35,7 @@ def create_docker_containers(
 
     ssh_commands = []
     image_name = f"image-{env_name}"
-    build_docker_image(dockerfile_content=dockerfile_content, image_name=image_name)
+    wrap_docker_image(dockerfile_content=dockerfile_content, image_name=image_name)
 
     ports = find_available_ports(
         num_ports=num_containers,
