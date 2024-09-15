@@ -1,6 +1,7 @@
 import dspy
 import dotenv
 import typing as t
+import re
 
 from pydantic import BaseModel, Field
 
@@ -28,7 +29,14 @@ class DockerFileQuerySignature(dspy.Signature):
     """
 
     description = dspy.InputField()
-    docker_file_text = dspy.OutputField()
+    docker_file_text = dspy.OutputField(description="only the dockerfile text")
+
+
+def extract_code(code_text: str):
+    res = re.search(r'```.*([\s\S]*?)```', code_text)
+    if not res:
+        return code_text
+    return res.groups(1)[0]
 
 
 class DockerFileGenerator(dspy.Module):
@@ -38,15 +46,16 @@ class DockerFileGenerator(dspy.Module):
         self.predict = dspy.Predict(DockerFileQuerySignature)
 
     def forward(self, prompt):
-        return self.predict(description=prompt)
+        res = self.predict(description=prompt)
+        return extract_code(res.docker_file_text)
 
 
 # setup
 dotenv.load_dotenv()
 
 # setup llm
-turbo = dspy.OpenAI(model="gpt-4o", max_tokens=1000, model_type="chat")
-dspy.settings.configure(lm=turbo)
+llm = dspy.OpenAI(model="gpt-4o", max_tokens=1000, model_type="chat")
+dspy.settings.configure(lm=llm)
 
 
 docker_file_gen = DockerFileGenerator()
@@ -155,36 +164,37 @@ def capture_progress_snapshot(code_files: t.List[CodeFile], goal: str) -> Progre
 
 
 if __name__ == "__main__":
+    res = get_docker_file("I want a python 3.12 environment with flask installed. supporting numpy")
     # res = get_docker_file("a simple python environment")
-    # print("the docker command")
-    # print(res.docker_file_text)
+    print("the docker command")
+    print(res)
 
-    def show_progress(progress):
-        print(progress.annotated_code)
-        print('read', progress.readability_score)
-        print('correctness', progress.correctness_score)
-        print('tips', progress.improvement_tips)
-
-    show_progress(capture_progress_snapshot(code_files=[CodeFile(filename="helloworld.py", code_str="""
-def hello_world():
-    a = 2
-""")],
-                goal="write a function to print hello world"
-    ))
-
-    print("----------------------------")
-
-    show_progress(capture_progress_snapshot(code_files=[CodeFile(filename="helloworld.py", code_str="""
-def hello_world():
-    return "hello world"
-""")],
-                goal="write a function to print hello world"
-    ))
-
-    print("----------------------------")
-    show_progress(capture_progress_snapshot(code_files=[CodeFile(filename="helloworld.py", code_str="""
-    def hello_world():
-        print("hello world")
-    """)],
-                goal="write a function to print hello world"
-    ))
+#     def show_progress(progress):
+#         print(progress.annotated_code)
+#         print('read', progress.readability_score)
+#         print('correctness', progress.correctness_score)
+#         print('tips', progress.improvement_tips)
+#
+#     show_progress(capture_progress_snapshot(code_files=[CodeFile(filename="helloworld.py", code_str="""
+# def hello_world():
+#     a = 2
+# """)],
+#                 goal="write a function to print hello world"
+#     ))
+#
+#     print("----------------------------")
+#
+#     show_progress(capture_progress_snapshot(code_files=[CodeFile(filename="helloworld.py", code_str="""
+# def hello_world():
+#     return "hello world"
+# """)],
+#                 goal="write a function to print hello world"
+#     ))
+#
+#     print("----------------------------")
+#     show_progress(capture_progress_snapshot(code_files=[CodeFile(filename="helloworld.py", code_str="""
+#     def hello_world():
+#         print("hello world")
+#     """)],
+#                 goal="write a function to print hello world"
+#     ))
