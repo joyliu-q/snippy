@@ -8,7 +8,7 @@ import "./tailwind.css";
 
 export const meta: MetaFunction = () => ([{
   charset: "utf-8",
-  title: "Scrippy",
+  title: "Scripty",
   viewport: "width=device-width,initial-scale=1",
 }]);
 
