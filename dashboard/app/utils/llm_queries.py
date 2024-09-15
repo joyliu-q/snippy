@@ -98,13 +98,13 @@ class AnnotateQuerySignature(dspy.Signature):
     )
     feedback = dspy.OutputField(description="assessment of the quality of the code")
     readability_score = dspy.OutputField(
-        description="just a number. readability score in the scale of 0 (worst) to 100 (best)"
+        description="just a number. readability score in the scale of 0 (worst) to 100 (best). Make sure this is only a number and can be processed by a computer as such with parseInt()",
     )
     correctness_score = dspy.OutputField(
-        description="just a number. correctness score in the scale of 0 (worst) to 100 (best)"
+        description="just a number. correctness score in the scale of 0 (worst) to 100 (best). Make sure this is only a number and can be processed by a computer as such with parseInt()",
     )
     improvement_tips = dspy.OutputField(
-        description="just a number. up to 5 things (just keywords, comma seperated) that can be improved"
+        description="just a number. up to 5 things (just keywords, comma seperated) that can be improved",
     )
 
 
@@ -146,33 +146,59 @@ def combine_codes(project_code: Project):
     return result
 
 
-def get_number(num_text: str):
+def get_number(num_text: str, true_denom=100) -> int:
     num_text = num_text.strip()
-    pt = len(num_text)
-    for i in range(len(num_text)):
-        if not num_text[i].isdigit():
-            pt = i
-            break
-    if pt == 0:
-        return 0
-    return int(num_text[: pt + 1])
+    print(num_text)
+
+    try:
+        if "/" in num_text:
+            numerator, denominator = num_text.split("/")
+            scale_factor = true_denom / int(denominator)
+            return int(numerator) * scale_factor
+
+        # Handle pure integers
+        pt = len(num_text)
+        for i in range(len(num_text)):
+            if not num_text[i].isdigit():
+                pt = i
+                break
+        if pt == 0:
+            return 0
+        return int(num_text[: pt + 1])
+    except ValueError:
+        return None
 
 
 def capture_progress_snapshot(project: Project) -> ProgressSnapshot:
     combined_code = combine_codes(project)
     res = annot_gen(code=combined_code, goal=project.goal)
+    try:
+        readability_score = get_number(res.readability_score)
+    except Exception as e:
+        print("Readability is baaaaaaad")
+        print(e)
+        readability_score = -1
+    try:
+        correctness_score = get_number(res.correctness_score)
+    except Exception as e:
+        print("CORECNJKTBNES is baaaaaaad")
+        print(e)
+        correctness_score = -1
     return ProgressSnapshot(
-        code=combined_code,
-        annotated_code=res.annotated_code,  # TODO instead of string we should match the comments to the lines
-        readability_score=get_number(res.readability_score),  # res.readability_score
-        correctness_score=get_number(res.correctness_score),  # res.correctness_score
-        improvement_tips=res.improvement_tips,
+        code=str(combined_code),
+        annotated_code=str(
+            res.annotated_code
+        ),  # TODO instead of string we should match the comments to the lines
+        readability_score=readability_score,  # res.readability_score
+        correctness_score=correctness_score,  # res.correctness_score
+        improvement_tips=str(res.improvement_tips),
     )
 
 
 def get_request_pydantic_model(env_url: str, model):
+    # http://192.168.49.2:32665/
     try:
-        response = requests.get(env_url)
+        response = requests.get(env_url, timeout=10)
         if response.status_code == 200:
             data = response.text
             item = model.model_validate_json(
@@ -185,13 +211,15 @@ def get_request_pydantic_model(env_url: str, model):
 
 
 def capture_progress_snapshot_by_url(env_url: str) -> ProgressSnapshot:
+    # env_url = http://192.168.49.2:32665/
+    # TODO: wtf?? why r we treating it as a path
     req_url = os.path.join(env_url, "project")
     project: Project = get_request_pydantic_model(req_url, Project)
     return capture_progress_snapshot(project)
 
 
 if __name__ == "__main__":
-    res = capture_progress_snapshot_by_url("http://127.0.0.1:5000")
+    res = capture_progress_snapshot_by_url("http://192.168.49.2:31985")
     print(res.annotated_code)
     print(res.correctness_score)
     print(res.readability_score)

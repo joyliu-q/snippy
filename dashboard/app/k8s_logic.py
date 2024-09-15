@@ -73,7 +73,9 @@ def create_kubernetes_deployments(
         http_url = f"http://{ip}:{http_node_port}"
 
         environments.append(
-            EnvironmentConfig(ssh_command=ssh_command, summary_server_url=http_url)
+            EnvironmentConfig(
+                env_name=env_name, ssh_command=ssh_command, summary_server_url=http_url
+            )
         )
 
     return environments

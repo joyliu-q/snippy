@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 import typing as t
+import redis
 
 from app.utils import (
     EnvironmentConfig,
@@ -18,7 +19,73 @@ from app.k8s_logic import create_kubernetes_deployments
 app = FastAPI()
 fake = Faker()
 
-ENVS_DATABASE_TOTALLY: t.Dict[str, EnvironmentConfig] = {}
+
+class StudentEnv(BaseModel):
+    env_name: str
+    name: str
+    email: str
+    ssh_command: str
+    summary_server_url: str
+    feedback: str
+
+    def save_to_redis(self):
+        """Save student env details to Redis"""
+        redis_client.hset(f"student-{self.ssh_command}", mapping=self.dict())
+
+    @staticmethod
+    def get_from_redis(env_name: str, ssh_command: str) -> "StudentEnv":
+        """Get student env details from Redis"""
+        student_data = redis_client.hget(
+            name=f"student-{ssh_command}", key=f"student-{env_name}"
+        )
+        return StudentEnv(**student_data)
+
+
+class Environment(BaseModel):
+    status: str = "success"
+    env_name: str
+    students: t.List[StudentEnv]
+    dockerfile: t.Optional[str]
+
+    def save_to_redis(self):
+        """Save environment details to Redis"""
+        redis_client.hset(f"env-{self.env_name}", mapping=self.dict())
+
+        for student in self.students:
+            student.save_to_redis()
+
+    @staticmethod
+    def get_from_redis(env_name: str) -> "Environment":
+        """Get environment details from Redis"""
+        keys = redis_client.keys(f"{env_name}:*")
+        students = []
+        for key in keys:
+            student_data = redis_client.hgetall(key)
+            students.append(StudentEnv(**student_data))
+        return students
+
+    @staticmethod
+    def get_all_from_redis() -> t.List["Environment"]:
+        """Get all environments from Redis"""
+        env_keys = redis_client.keys("env-*")
+        environments = []
+
+        for env_key in env_keys:
+            env_data = redis_client.hgetall(env_key)
+            if env_data:
+                students = []
+                student_keys = redis_client.keys("student-*")
+                for key in student_keys:
+                    student_data = redis_client.hgetall(key)
+                    students.append(StudentEnv(**student_data))
+
+                environments.append(Environment(**env_data, students=students))
+
+        return environments
+
+
+ENVS_DATABASE_TOTALLY: t.Dict[str, StudentEnv] = {}
+redis_client = redis.Redis(host="localhost", port=6379, db=0, decode_responses=True)
 
 
 app.add_middleware(
@@ -38,42 +105,33 @@ class ContainerRequest(BaseModel):
     )
 
 
-class Student(BaseModel):
-    name: str
-    email: str
-    ssh_command: str
-    feedback: str
-
-
 class SmartContainerRequest(BaseModel):
     num_containers: int
     prompt: str
 
 
-class StudentResponse(BaseModel):
-    status: str = "success"
-    students: t.List[Student]
-    dockerfile: t.Optional[str]
-
-
 def spin_up_containers(
     num_containers, dockerfile_content=DEFAULT_DOCKERFILE_CONTENT
-) -> StudentResponse:
+) -> Environment:
     try:
-        envs = create_kubernetes_deployments(num_containers, dockerfile_content)
+        env_configs = create_kubernetes_deployments(num_containers, dockerfile_content)
         students = []
-        for env in envs:
-            ENVS_DATABASE_TOTALLY[env.ssh_command] = env
-            students.append(
-                Student(
-                    name=fake.name(),
-                    email=fake.email(),
-                    ssh_command=env.ssh_command,
-                    feedback="TODO: add feedback lol",
-                )
+        for env_config in env_configs:
+            env = StudentEnv(
+                env_name=env_config.env_name,
+                name=fake.name(),
+                email=fake.email(),
+                ssh_command=env_config.ssh_command,
+                summary_server_url=env_config.summary_server_url,
+                feedback="No feedback yet, student just started",
             )
-        return StudentResponse(
-            status="success", students=students, dockerfile=dockerfile_content
+            ENVS_DATABASE_TOTALLY[env.ssh_command] = env
+            students.append(env)
+        return Environment(
+            env_name=env_configs[0].env_name,  # TODO: handle validation if 0 specified
+            status="success",
+            students=students,
+            dockerfile=dockerfile_content,
         )
     except Exception as e:
         raise HTTPException(
@@ -81,18 +139,8 @@ def spin_up_containers(
         ) from e
 
 
-# def spin_up_containers(num_containers, dockerfile_content):
-#     try:
-#         ssh_commands = create_docker_containers(num_containers, dockerfile_content)
-
-#         return {"status": "success", "ssh_commands": ssh_commands}
-
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
-
-
 @app.post("/create_envs/manual")
-async def create_envs_manual(request: ContainerRequest) -> StudentResponse:
+async def create_envs_manual(request: ContainerRequest) -> Environment:
     num_containers = request.num_containers
     dockerfile_content = request.dockerfile_content
     return spin_up_containers(
@@ -101,7 +149,7 @@ async def create_envs_manual(request: ContainerRequest) -> StudentResponse:
 
 
 @app.post("/create_envs")
-async def create_envs(request: SmartContainerRequest) -> StudentResponse:
+async def create_envs(request: SmartContainerRequest) -> Environment:
     num_containers = request.num_containers
     dockerfile_content = get_docker_file(request.prompt)
     return spin_up_containers(
@@ -110,31 +158,36 @@ async def create_envs(request: SmartContainerRequest) -> StudentResponse:
 
 
 class StudentsResponse(BaseModel):
-    students: t.List[Student]
+    students: t.List[StudentEnv]
 
 
 @app.get("/students")
-async def get_students():
-    students = [
-        Student(
-            name=fake.name(),
-            email=fake.email(),
-            ssh_command=e.ssh_command,
-            feedback="Lorem ipsum",
-        )
-        for e in ENVS_DATABASE_TOTALLY.values()
-    ]
+async def get_students() -> StudentsResponse:
+    students = []
+    existing_envs = Environment.get_all_from_redis()
+    for e in [*ENVS_DATABASE_TOTALLY.values(), *existing_envs]:
+        try:
+            feedback = capture_progress_snapshot_by_url(
+                env_url=e.summary_server_url
+            ).improvement_tips
+            env = StudentEnv(
+                env_name=e.env_name,
+                name=fake.name(),
+                email=fake.email(),
+                ssh_command=e.ssh_command,
+                summary_server_url=e.summary_server_url,
+                feedback=feedback,
+            )
+        except Exception as exc:
+            print(exc)
+            env = StudentEnv(
+                env_name=e.env_name,
+                name=fake.name(),
+                email=fake.email(),
+                ssh_command=e.ssh_command,
+                summary_server_url=e.summary_server_url,
+                feedback=f"Something went wrong when fetching feedback ${e}",
+            )
+        env.save_to_redis()
+        students.append(env)
     return StudentsResponse(students=students)
-
-
-class FeedbacksResponse(BaseModel):
-    feedbacks: t.List[ProgressSnapshot]
-
-
-@app.get("/feedback")
-async def get_feedbacks() -> FeedbacksResponse:
-    feedbacks = []
-    for env in ENVS_DATABASE_TOTALLY.values():
-        feedback = capture_progress_snapshot_by_url(env_url=env.summary_server_url)
-        feedbacks.append(feedback)
-    return FeedbacksResponse(feedbacks=feedbacks)

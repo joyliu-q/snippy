@@ -3,6 +3,7 @@ from pydantic import BaseModel
 
 
 class EnvironmentConfig(BaseModel):
+    env_name: str
     ssh_command: str
     summary_server_url: str
 

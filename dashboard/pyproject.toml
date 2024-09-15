@@ -19,6 +19,7 @@ python-dotenv = "^1.0.1"
 faker = "^28.4.1"
 black = "^24.8.0"
 jupyterlab = "^4.2.5"
+redis = "^5.0.8"
 
 
 [build-system]

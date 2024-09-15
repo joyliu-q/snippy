@@ -32,7 +32,7 @@ export default function Dashboard() {
 
   const handleGetEnvs = async () => {
     try {
-      const envs = await fetch("http://localhost:8000/envs");
+      const envs = await fetch("http://localhost:8000/students");
 
       if (!envs.ok) {
         throw new Error(`Failed to get environments: ${envs.statusText}`);
