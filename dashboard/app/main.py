@@ -4,17 +4,25 @@ import typing as t
 
 from app.utils import EnvironmentConfig, DEFAULT_DOCKERFILE_CONTENT
 from faker import Faker
+from fastapi.middleware.cors import CORSMiddleware
 
 # from app.docker_logic import create_docker_containers
 from app.utils import get_docker_file
 from app.k8s_logic import create_kubernetes_deployments
 
-from dashboard.app.docker_logic import create_docker_containers
-
 app = FastAPI()
 fake = Faker()
 
 ENVS_DATABASE_TOTALLY: t.Dict[str, EnvironmentConfig] = {}
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],  # Update this with your frontend origin
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allow all headers
+)
 
 
 # Request body model to handle input
@@ -79,7 +87,7 @@ def spin_up_containers(
 
 
 @app.post("/create_envs/manual")
-async def create_envs_manual(request: ContainerRequest):
+async def create_envs_manual(request: ContainerRequest) -> StudentResponse:
     num_containers = request.num_containers
     dockerfile_content = request.dockerfile_content
     return spin_up_containers(
@@ -88,7 +96,7 @@ async def create_envs_manual(request: ContainerRequest):
 
 
 @app.post("/create_envs")
-async def create_envs(request: SmartContainerRequest):
+async def create_envs(request: SmartContainerRequest) -> StudentResponse:
     num_containers = request.num_containers
     dockerfile_content = get_docker_file(request.prompt)
     return spin_up_containers(

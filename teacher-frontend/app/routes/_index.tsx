@@ -45,52 +45,52 @@ export default function Index() {
     navigator.clipboard.writeText(text);
   };
 
-  // const handleConfigure = async () => {
-  //   try {
-  //     const response = await fetch("http://localhost:8000/create_envs", {
-  //       method: "POST",
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //       },
-  //       body: JSON.stringify({
-  //         num_containers: parseInt(numberValue),
-  //         dockerfile_content: textValue,
-  //       }),
-  //     });
-
-  //     if (!response.ok) {
-  //       throw new Error(`Failed to create containers: ${response.statusText}`);
-  //     }
-
-  //     const data = await response.json();
-  //     setOutput({
-  //       dockerfile: data.dockerfile,
-  //       students: data.students,
-  //     });
-  //   } catch (error: any) {
-  //     setError(`Error: ${error.message}`);
-  //   }
-  // };
-
   const handleConfigure = async () => {
-    setOutput({
-      dockerfile: `# Dummy Dockerfile\nFROM python:3.8\nRUN pip install flask\nCOPY . /app\nCMD ["python", "/app/run.py"]`,
-      students: [
-        {
-          name: "John Doe",
-          email: "john.doe@example.com",
-          ssh_command: "ssh john.doe@192.168.1.10",
-          feedback: "Environment is running fine.",
+    try {
+      const response = await fetch("http://localhost:8000/create_envs/manual", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-        {
-          name: "Jane Smith",
-          email: "jane.smith@example.com",
-          ssh_command: "ssh jane.smith@192.168.1.11",
-          feedback: "Everything set up perfectly!",
-        },
-      ],
-    });
+        body: JSON.stringify({
+          num_containers: parseInt(numberValue),
+          // prompt: textValue,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to create containers: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setOutput({
+        dockerfile: data.dockerfile,
+        students: data.students,
+      });
+    } catch (error: any) {
+      setError(`Error: ${error.message}`);
+    }
   };
+
+  // const handleConfigure = async () => {
+  //   setOutput({
+  //     dockerfile: `# Dummy Dockerfile\nFROM python:3.8\nRUN pip install flask\nCOPY . /app\nCMD ["python", "/app/run.py"]`,
+  //     students: [
+  //       {
+  //         name: "John Doe",
+  //         email: "john.doe@example.com",
+  //         ssh_command: "ssh john.doe@192.168.1.10",
+  //         feedback: "Environment is running fine.",
+  //       },
+  //       {
+  //         name: "Jane Smith",
+  //         email: "jane.smith@example.com",
+  //         ssh_command: "ssh jane.smith@192.168.1.11",
+  //         feedback: "Everything set up perfectly!",
+  //       },
+  //     ],
+  //   });
+  // };
 
   return (
     <div>
@@ -105,7 +105,7 @@ export default function Index() {
               value={textValue}
               onChange={(e) => setTextValue(e.target.value)}
               className="mt-2 p-3 text-black"
-              placeholder="Install Python..."/>
+              placeholder="I want a python 3.12 environment with numpy installed, supporting flask app development..."/>
           </div>
           <div className="flex flex-col w-full max-w-md">
             <label htmlFor="numberInput" className="text-lg font-medium">
