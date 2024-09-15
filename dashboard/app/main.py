@@ -8,6 +8,8 @@ from faker import Faker
 from app.utils import get_docker_file
 from app.k8s_logic import create_kubernetes_deployments
 
+from dashboard.app.docker_logic import create_docker_containers
+
 app = FastAPI()
 fake = Faker()
 

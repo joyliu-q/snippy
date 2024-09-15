@@ -100,7 +100,7 @@ def create_docker_containers(
         container_name = f"container-{env_name}-{i+1}"
 
         port = ports[i]
-        run_command(f"docker run -d --name {container_name} -p {port}:22 {image_name}")
+        run_command(f"docker run -d --name {container_name} -p {port}:22 -p 5000:5000 {image_name}")
         container_name = f"container-{env_name}-{i+1}"
 
         time.sleep(1)
