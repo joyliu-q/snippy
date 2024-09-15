@@ -3,7 +3,7 @@ import zipfile
 
 from flask import Flask, send_file
 from io import BytesIO
-from .constants import CONTAINER_SERVER_PATH, CONTAINER_PROJECT_PATH, CONTAINER_SERVER_PORT
+from constants import CONTAINER_SERVER_PATH, CONTAINER_PROJECT_PATH, CONTAINER_SERVER_PORT
 
 app = Flask(__name__)
 
@@ -32,6 +32,18 @@ def download_zip():
         download_name='directory.zip'
     )
 
+
+# @app.route('/summarize', methods=['GET'])
+# def download_zip():
+#     """endpoint to summarize the performance of the student."""
+#     zip_buffer = zip_directory(directory=CONTAINER_PROJECT_PATH)
+#     return send_file(
+#         zip_buffer,
+#         mimetype='application/zip',
+#         as_attachment=True,
+#         download_name='directory.zip'
+#     )
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=CONTAINER_SERVER_PORT)
-

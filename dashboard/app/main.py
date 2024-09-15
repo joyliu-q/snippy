@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 import typing as t
 
+from app.utils import EnvironmentConfig, DEFAULT_DOCKERFILE_CONTENT
 from faker import Faker
 
 # from app.docker_logic import create_docker_containers
@@ -11,18 +12,20 @@ from app.k8s_logic import create_kubernetes_deployments
 app = FastAPI()
 fake = Faker()
 
+ENVS_DATABASE_TOTALLY: t.Dict[str, EnvironmentConfig] = {}
+
 
 # Request body model to handle input
 class ContainerRequest(BaseModel):
     num_containers: int
     dockerfile_content: t.Optional[str] = Field(
-        None, description="Optional custom Dockerfile content"
+        DEFAULT_DOCKERFILE_CONTENT, description="Optional custom Dockerfile content"
     )
 
 
 class Student(BaseModel):
-    name: str = "yo"
-    email: str = "lmao"
+    name: str
+    email: str
     ssh_command: str
     feedback: str
 
@@ -33,25 +36,30 @@ class SmartContainerRequest(BaseModel):
 
 
 class StudentResponse(BaseModel):
-    status = "success"
+    status: str = "success"
     students: t.List[Student]
-    dockerfile: str
+    dockerfile: t.Optional[str]
 
 
-def spin_up_containers(num_containers, dockerfile_content) -> StudentResponse:
+def spin_up_containers(
+    num_containers, dockerfile_content=DEFAULT_DOCKERFILE_CONTENT
+) -> StudentResponse:
     try:
-        ssh_commands = create_kubernetes_deployments(num_containers, dockerfile_content)
+        envs = create_kubernetes_deployments(num_containers, dockerfile_content)
         students = []
-        for command in ssh_commands:
+        for env in envs:
+            ENVS_DATABASE_TOTALLY[env.ssh_command] = env
             students.append(
                 Student(
                     name=fake.name(),
                     email=fake.email(),
-                    ssh_command=command,
+                    ssh_command=env.ssh_command,
                     feedback="TODO: add feedback lol",
                 )
             )
-        return StudentResponse(ssh_commands=students, dockerfile=dockerfile_content)
+        return StudentResponse(
+            status="success", students=students, dockerfile=dockerfile_content
+        )
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"An error occurred: {str(e)}"
@@ -84,3 +92,8 @@ async def create_envs(request: SmartContainerRequest):
     return spin_up_containers(
         num_containers=num_containers, dockerfile_content=dockerfile_content
     )
+
+
+@app.get("/envs")
+async def get_envs():
+    return ENVS_DATABASE_TOTALLY

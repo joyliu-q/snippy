@@ -7,6 +7,7 @@ class DockerFileQuerySignature(dspy.Signature):
         write a docker image that contains all the environments described in the description
 
             make sure to add a configuration to allow ssh into this container.
+            make sure that this environment contains python, if it is not specified already
             make sure to expose port 22 as well and not the inputted port
             users should be able to ssh into this container and interactively use it without any password
 

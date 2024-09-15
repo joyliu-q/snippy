@@ -6,11 +6,11 @@ import subprocess
 import os
 import time
 import uuid
+import typing as t
 
-from app.utils import DEFAULT_DOCKERFILE_CONTENT, run_command, wrap_docker_image
+from app.utils import DEFAULT_DOCKERFILE_CONTENT, run_command, EnvironmentConfig
 import os
-
-
+from app.docker_logic import wrap_docker_image
 from kubernetes import client, config
 
 
@@ -26,7 +26,7 @@ def set_minikube_docker_env():
 
 def create_kubernetes_deployments(
     num_containers, dockerfile_content=None, env_name=None
-):
+) -> t.List[EnvironmentConfig]:
     config.load_kube_config()
     core_v1_api = client.CoreV1Api()
 
@@ -54,7 +54,7 @@ def create_kubernetes_deployments(
 
     pod_names = get_pod_names(deployment.metadata.name, namespace)
 
-    ssh_commands = []
+    environments = []
     ip = subprocess.run(
         ["minikube", "ip"], text=True, capture_output=True, check=True
     ).stdout.strip()
@@ -63,18 +63,20 @@ def create_kubernetes_deployments(
         update_pod_labels(core_v1_api, pod_name, namespace)
         service = create_k8s_service(pod_name)
         print(f"Retrieving NodePort for pod: {pod_name}")
-        node_port = (
-            core_v1_api.read_namespaced_service(
-                name=service.metadata.name, namespace=namespace
-            )
-            .spec.ports[0]
-            .node_port
+        service_spec = core_v1_api.read_namespaced_service(
+            name=service.metadata.name, namespace=namespace
+        ).spec.ports
+        ssh_node_port = service_spec[0].node_port
+        http_node_port = service_spec[1].node_port
+
+        ssh_command = f"ssh -p {ssh_node_port} root@{ip}"
+        http_url = f"http://{ip}:{http_node_port}"
+
+        environments.append(
+            EnvironmentConfig(ssh_command=ssh_command, summary_server_url=http_url)
         )
 
-        ssh_command = f"ssh -p {node_port} root@{ip}"
-        ssh_commands.append(ssh_command)
-
-    return ssh_commands
+    return environments
 
 
 def get_pod_names(deployment_name, namespace="default"):
@@ -105,7 +107,10 @@ def create_k8s_deployment(image_name, deployment_name, namespace="default", repl
         name=deployment_name,
         image=image_name,
         image_pull_policy="IfNotPresent",
-        ports=[client.V1ContainerPort(container_port=22)],
+        ports=[
+            client.V1ContainerPort(container_port=22),
+            client.V1ContainerPort(container_port=5000),
+        ],
     )
 
     template = client.V1PodTemplateSpec(
@@ -142,7 +147,10 @@ def create_k8s_service(pod_name, namespace="default"):
         metadata=client.V1ObjectMeta(name=f"{pod_name}-service"),
         spec=client.V1ServiceSpec(
             selector={"name": pod_name},
-            ports=[client.V1ServicePort(port=22, target_port=22)],
+            ports=[
+                client.V1ServicePort(name="ssh", port=22, target_port=22),
+                client.V1ServicePort(name="http", port=5000, target_port=5000),
+            ],
             type="NodePort",
         ),
     )
