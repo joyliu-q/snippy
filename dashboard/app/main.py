@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 import typing as t
 
-from app.utils import EnvironmentConfig, DEFAULT_DOCKERFILE_CONTENT
+from app.utils import EnvironmentConfig, DEFAULT_DOCKERFILE_CONTENT, ProgressSnapshot
 from faker import Faker
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -104,6 +104,29 @@ async def create_envs(request: SmartContainerRequest) -> StudentResponse:
     )
 
 
-@app.get("/envs")
-async def get_envs():
-    return ENVS_DATABASE_TOTALLY
+class StudentsResponse(BaseModel):
+    students: t.List[Student]
+
+
+@app.get("/students")
+async def get_students():
+    students = [
+        Student(
+            name=fake.name(),
+            email=fake.email(),
+            ssh_command=e.ssh_command,
+            feedback="Lorem ipsum",
+        )
+        for e in ENVS_DATABASE_TOTALLY.values()
+    ]
+    return StudentsResponse(students=students)
+
+
+class FeedbacksResponse(BaseModel):
+    feedbacks: t.List[ProgressSnapshot]
+
+
+@app.get("/feedback")
+async def get_feedbacks() -> FeedbacksResponse:
+    feedbacks = []
+    return FeedbacksResponse(feedbacks=feedbacks)
