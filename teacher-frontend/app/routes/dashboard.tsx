@@ -9,6 +9,7 @@ import {
 } from "~/components/ui/table";
 
 export default function Dashboard() {
+  // Load from database
   const students = [
     {
       name: "Alice Smith",
